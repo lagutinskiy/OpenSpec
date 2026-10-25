@@ -2,6 +2,43 @@ import { COMMON_FLAGS } from './shared-flags.js';
 import type { CommandDefinition } from './types.js';
 export const COMMAND_REGISTRY: CommandDefinition[] = [
   {
+    name: 'skills',
+    description: 'Install OpenSpec workflow skills',
+    flags: [],
+    subcommands: [
+      {
+        name: 'install',
+        description: 'Install or refresh OpenSpec skills for your user account',
+        flags: [
+          { name: 'global', description: 'Install skills for all projects on this machine' },
+          {
+            name: 'tools',
+            description: 'Harnesses: all or a comma-separated list of supported harness IDs',
+            takesValue: true,
+            values: ['all', 'codex', 'claude', 'pi', 'cursor', 'devin', 'opencode', 'warp', 'dsh', 'grok'],
+          },
+          { name: 'json', description: 'Output machine-readable JSON' },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'review',
+    description: 'Independent review and lifecycle readiness',
+    acceptsPositional: true,
+    positionals: [{ name: 'stage', optional: false }],
+    flags: [
+      { name: 'change', description: 'Change name', takesValue: true },
+      { name: 'main-harness', description: 'Implementing harness', takesValue: true },
+      { name: 'reviewer', description: 'Independent reviewer', takesValue: true, values: ['codex', 'claude'] },
+      { name: 'base', description: 'Git base revision', takesValue: true },
+      { name: 'implementation-root', description: 'Implementation repository', takesValue: true },
+      { name: 'check', description: 'Verification command argument array as JSON', takesValue: true },
+      COMMON_FLAGS.store,
+      COMMON_FLAGS.json,
+    ],
+  },
+  {
     name: 'init',
     description: 'Initialize OpenSpec in your project',
     acceptsPositional: true,
@@ -32,14 +69,6 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
         name: 'no-animation',
         description: 'Show a static welcome screen instead of the animated one',
       },
-      {
-        name: 'copilot-cloud',
-        description: 'Generate GitHub Copilot cloud coding-agent files (opt-in; default: prompt)',
-      },
-      {
-        name: 'no-copilot-cloud',
-        description: 'Skip generating GitHub Copilot cloud coding-agent files',
-      },
     ],
   },
   {
@@ -64,21 +93,10 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
     ],
   },
   {
-    name: 'install',
-    description: 'Install the standalone openspec, which runs without Node.js (latest release unless [version] is given)',
-    acceptsPositional: true,
-    positionals: [{ name: 'version', optional: true }],
-    flags: [],
-  },
-  {
     name: 'version',
-    description: 'Report the installed OpenSpec version and update availability',
+    description: 'Report the installed private OpenSpec version',
     flags: [
       COMMON_FLAGS.json,
-      {
-        name: 'check',
-        description: 'Check the registry for a newer version',
-      },
     ],
   },
   {
@@ -506,19 +524,6 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
           },
           COMMON_FLAGS.json,
         ],
-      },
-    ],
-  },
-  {
-    name: 'feedback',
-    description: 'Submit feedback about OpenSpec',
-    acceptsPositional: true,
-    positionals: [{ name: 'message' }],
-    flags: [
-      {
-        name: 'body',
-        description: 'Detailed description for the feedback',
-        takesValue: true,
       },
     ],
   },

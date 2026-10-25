@@ -3,11 +3,6 @@ import chalk from 'chalk';
 interface Choice {
   name: string;
   value: string;
-  /**
-   * Extra terms the search box matches, for choices users look for by a word
-   * the name does not spell (see #653). Never rendered.
-   */
-  searchAliases?: string[];
   description?: string;
   configured?: boolean;
   detected?: boolean;
@@ -20,8 +15,6 @@ interface Config {
   choices: Choice[];
   pageSize?: number;
   validate?: (selected: string[]) => boolean | string;
-  /** Shown when a search matches nothing, so the list is not a dead end. */
-  emptyHint?: string;
 }
 
 /**
@@ -52,7 +45,7 @@ async function createSearchableMultiSelect(): Promise<
   } = await import('@inquirer/core');
 
   return createPrompt((config: Config, done: (value: string[]) => void): string => {
-    const { message, choices, pageSize = 15, validate, emptyHint } = config;
+    const { message, choices, pageSize = 15, validate } = config;
 
     const [searchText, setSearchText] = useState('');
     const [selectedValues, setSelectedValues] = useState<string[]>(
@@ -71,10 +64,7 @@ async function createSearchableMultiSelect(): Promise<
       return choices.filter(
         (c) =>
           c.name.toLowerCase().includes(term) ||
-          c.value.toLowerCase().includes(term) ||
-          (c.searchAliases ?? []).some((alias) =>
-            alias.toLowerCase().includes(term)
-          )
+          c.value.toLowerCase().includes(term)
       );
     }, [searchText, choices]);
 
@@ -195,7 +185,6 @@ async function createSearchableMultiSelect(): Promise<
     // List
     if (filteredChoices.length === 0) {
       lines.push(chalk.yellow('  No matches'));
-      if (emptyHint) lines.push(chalk.dim(`  ${emptyHint}`));
     } else {
       // Calculate pagination
       const startIndex = Math.max(

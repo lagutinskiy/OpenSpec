@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { getGlobalDataDir, registerStore } from '../../src/core/index.js';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 import { createOpenSpecRoot, writeSpec } from '../helpers/openspec-fixtures.js';
 import { cleanupTempPath } from '../helpers/temp-cleanup.js';
 
@@ -62,7 +62,7 @@ describe('capstone persona journeys (6.1)', () => {
 
     // Discovery: the relationship comes from config, not insider
     // knowledge — instructions and context both surface it.
-    const contextResult = await runCLI(['context', '--json'], { cwd: appRepo, env });
+    const contextResult = await runReviewedCLI(['context', '--json'], { cwd: appRepo, env });
     expect(contextResult.exitCode).toBe(0);
     const member = JSON.parse(contextResult.stdout).members[0];
     expect(member).toEqual(
@@ -76,12 +76,12 @@ describe('capstone persona journeys (6.1)', () => {
 
     // Citation: the agent follows the fetch recipe verbatim.
     const fetch = member.fetch.replace('<spec-id>', 'billing-rules').split(' ').slice(1);
-    const cited = await runCLI(fetch, { cwd: appRepo, env });
+    const cited = await runReviewedCLI(fetch, { cwd: appRepo, env });
     expect(cited.exitCode).toBe(0);
     expect(cited.stdout).toContain('All invoices are immutable after issue.');
 
     // Low-level design lands in the app repo's own root, not the store.
-    const created = await runCLI(
+    const created = await runReviewedCLI(
       ['new', 'change', 'implement-invoice-immutability', '--json'],
       { cwd: appRepo, env }
     );
@@ -116,7 +116,7 @@ describe('capstone persona journeys (6.1)', () => {
     );
 
     // The whole lifecycle from the code repo, zero --store flags.
-    const created = await runCLI(
+    const created = await runReviewedCLI(
       ['new', 'change', 'add-rate-limits', '--schema', 'spec-driven', '--json'],
       { cwd: codeRepo, env }
     );
@@ -124,14 +124,14 @@ describe('capstone persona journeys (6.1)', () => {
     const changeDir = path.join(storeRoot, 'openspec', 'changes', 'add-rate-limits');
     expect(fs.existsSync(changeDir)).toBe(true);
 
-    const status = await runCLI(['status', '--change', 'add-rate-limits', '--json'], {
+    const status = await runReviewedCLI(['status', '--change', 'add-rate-limits', '--json'], {
       cwd: codeRepo,
       env,
     });
     expect(status.exitCode).toBe(0);
     expect(JSON.parse(status.stdout).changeName).toBe('add-rate-limits');
 
-    const instructions = await runCLI(
+    const instructions = await runReviewedCLI(
       ['instructions', 'proposal', '--change', 'add-rate-limits', '--json'],
       { cwd: codeRepo, env }
     );
@@ -142,7 +142,7 @@ describe('capstone persona journeys (6.1)', () => {
     // resolve concretely under the change dir.
     const artifacts = JSON.parse(status.stdout).artifacts as Array<{ id: string }>;
     for (const artifact of artifacts) {
-      const artifactStatus = await runCLI(
+      const artifactStatus = await runReviewedCLI(
         ['instructions', artifact.id, '--change', 'add-rate-limits', '--json'],
         { cwd: codeRepo, env }
       );
@@ -165,7 +165,7 @@ describe('capstone persona journeys (6.1)', () => {
     expect(writtenArtifacts).toEqual(['.openspec.yaml', 'design.md', 'proposal.md', 'specs', 'tasks.md']);
 
     // Archive completes the lifecycle, still without --store.
-    const archived = await runCLI(
+    const archived = await runReviewedCLI(
       ['archive', 'add-rate-limits', '--yes', '--skip-specs', '--json'],
       { cwd: codeRepo, env }
     );

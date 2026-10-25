@@ -1,3 +1,4 @@
+import { REVIEW_GUIDANCE } from './review-change.js';
 /**
  * Skill Template Workflow Modules
  *
@@ -38,6 +39,10 @@ export function getFfChangeSkillTemplate(): SkillTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
+
+When all applicable planning artifacts are ready, run the requirements review before presenting the change as ready to implement. Choose small-change for bounded work without design complexity; behavioral changes still require specs. Write outcomes and business rules in proposals/specs; put implementation mechanics in design/tasks unless the interface is the requested subject.
 
 **Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
@@ -158,6 +163,10 @@ export function getOpsxFfCommandTemplate(): CommandTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
+
+When all applicable planning artifacts are ready, run the requirements review before presenting the change as ready to implement. Choose small-change for bounded work without design complexity; behavioral changes still require specs. Write outcomes and business rules in proposals/specs; put implementation mechanics in design/tasks unless the interface is the requested subject.
 
 **Input**: The argument after \`/opsx:ff\` is the change name (kebab-case), OR a description of what the user wants to build.
 

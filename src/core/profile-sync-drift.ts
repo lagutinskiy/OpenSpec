@@ -15,11 +15,7 @@ import { readSharedSkillTarget } from './shared-skill-target.js';
 import { FileSystemUtils } from '../utils/file-system.js';
 import { DISK_VIEW, type FileView } from './file-view.js';
 import { isLegacyCodexSkillEquivalentToCurrent } from './shared/skill-content-equivalence.js';
-import {
-  hasGlobalSkillTarget,
-  resolveToolSkillsDir,
-  toolSupportsSkills,
-} from './shared/skill-paths.js';
+import { resolveToolSkillsDir, toolSupportsSkills } from './shared/skill-paths.js';
 
 type WorkflowId = (typeof ALL_WORKFLOWS)[number];
 
@@ -37,6 +33,7 @@ export const WORKFLOW_TO_SKILL_DIR: Record<WorkflowId, string> = {
   'archive': 'openspec-archive-change',
   'bulk-archive': 'openspec-bulk-archive-change',
   'verify': 'openspec-verify-change',
+  'review': 'openspec-review-change',
   'onboard': 'openspec-onboard',
   'propose': 'openspec-propose',
 };
@@ -136,7 +133,7 @@ export function hasToolProfileOrDeliveryDrift(
         return true;
       }
     }
-  } else if (shouldRemoveSkillsForTool(toolId, delivery) && !hasGlobalSkillTarget(tool)) {
+  } else if (shouldRemoveSkillsForTool(toolId, delivery)) {
     for (const workflow of ALL_WORKFLOWS) {
       const dirName = WORKFLOW_TO_SKILL_DIR[workflow];
       const skillDir = path.join(skillsDir, dirName);

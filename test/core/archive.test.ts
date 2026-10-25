@@ -10,6 +10,10 @@ import { constants as fsConstants, promises as fs, realpathSync } from 'fs';
 import path from 'path';
 import os from 'os';
 
+// These unit tests exercise archive/spec transactions after lifecycle approval.
+// Preflight itself is covered by review/readiness and review CLI end-to-end tests.
+vi.mock('../../src/core/review/readiness.js', () => ({ assertArchiveReady: vi.fn() }));
+
 // Mock @inquirer/prompts
 vi.mock('@inquirer/prompts', () => ({
   select: vi.fn(),

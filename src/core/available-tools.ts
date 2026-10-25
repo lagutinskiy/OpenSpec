@@ -8,7 +8,6 @@
 import path from 'path';
 import { AI_TOOLS, type AIToolOption } from './config.js';
 import { reconcileSharedSkillTargets } from './shared-skill-target.js';
-import { SKILL_NAMES } from './shared/tool-detection.js';
 import { resolveToolSkillsDir, toolSupportsSkills } from './shared/skill-paths.js';
 import { DISK_VIEW, type FileView } from './file-view.js';
 
@@ -17,19 +16,11 @@ import { DISK_VIEW, type FileView } from './file-view.js';
  * the tools that are present.
  *
  * For tools with `detectionPaths`, checks those specific paths (files or
- * directories). Otherwise checks the project's `skillsDir`, or managed skill
- * files in the user's home directory for a global skill target.
+ * directories). Otherwise checks the project's `skillsDir`.
  */
 export function getAvailableTools(projectPath: string, view: FileView = DISK_VIEW): AIToolOption[] {
   const available = AI_TOOLS.filter((tool) => {
     if (!toolSupportsSkills(tool)) return false;
-
-    if (tool.globalSkillsDir) {
-      const skillsDir = resolveToolSkillsDir(projectPath, tool);
-      return SKILL_NAMES.some((skillName) =>
-        view.exists(path.join(skillsDir, skillName, 'SKILL.md'))
-      );
-    }
 
     if (!tool.skillsDir) return false;
 
@@ -56,7 +47,6 @@ export function getAvailableTools(projectPath: string, view: FileView = DISK_VIE
     });
   return available.filter(
     (tool) =>
-      tool.globalSkillsDir ||
       hasIndependentDetectionPath(tool) ||
       activeProjectTools.has(tool.value)
   );

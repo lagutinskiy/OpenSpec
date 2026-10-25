@@ -31,4 +31,4 @@
 
 ## Impact
 
-<!-- Affected code, APIs, dependencies, systems -->
+<!-- Affected people, workflows, external contracts, rollout, and compatibility. Keep implementation inventories in design or tasks. -->

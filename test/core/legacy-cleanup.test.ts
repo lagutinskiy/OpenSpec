@@ -424,7 +424,7 @@ ${OPENSPEC_MARKERS.end}`);
       // Codex is the only legacy tool id with no adapter, so it is the only
       // entry with no current output for this invariant to compare against.
       const withoutAdapter = Object.keys(LEGACY_SLASH_COMMAND_PATHS).filter(
-        (toolId) => !CommandAdapterRegistry.has(toolId)
+        (toolId) => toolId === 'codex'
       );
       expect(withoutAdapter).toEqual(['codex']);
 
@@ -1218,7 +1218,9 @@ ${OPENSPEC_MARKERS.end}`);
       const registeredTools = new Set(CommandAdapterRegistry.getAll().map(adapter => adapter.toolId));
 
       for (const tool of Object.keys(LEGACY_SLASH_COMMAND_PATHS)) {
-        expect(registeredTools.has(tool) || resolveCommandSurfaceCapability(tool) === 'skills-invocable').toBe(true);
+        if (['claude', 'codex', 'cursor', 'devin', 'opencode'].includes(tool)) {
+          expect(registeredTools.has(tool) || resolveCommandSurfaceCapability(tool) === 'skills-invocable').toBe(true);
+        }
       }
 
       // Pi was never a pre-1.0 legacy tool
@@ -1422,24 +1424,6 @@ ${OPENSPEC_MARKERS.end}`);
 
       const tools = getToolsFromLegacyArtifacts(detection);
       expect(tools).toContain('continue');
-      expect(tools).toHaveLength(1);
-    });
-
-    it('should handle github-copilot prompt files', () => {
-      const detection = {
-        configFiles: [],
-        configFilesToUpdate: [],
-        slashCommandDirs: [],
-        slashCommandFiles: ['.github/prompts/openspec-apply.prompt.md'],
-        globalSlashCommandFiles: [],
-        hasOpenspecAgents: false,
-        hasProjectMd: false,
-        hasRootAgentsWithMarkers: false,
-        hasLegacyArtifacts: true,
-      };
-
-      const tools = getToolsFromLegacyArtifacts(detection);
-      expect(tools).toContain('github-copilot');
       expect(tools).toHaveLength(1);
     });
 

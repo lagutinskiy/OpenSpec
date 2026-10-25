@@ -532,9 +532,7 @@ function scanInstalledWorkflowArtifacts(
     if (!toolSupportsSkills(tool)) continue;
 
     const skillsDirs: string[] = [];
-    if (tool.globalSkillsDir) {
-      skillsDirs.push(resolveToolSkillsDir(projectPath, tool));
-    } else if (isSharedSkillTargetActive(projectPath, tool.value, view)) {
+    if (isSharedSkillTargetActive(projectPath, tool.value, view)) {
       skillsDirs.push(resolveToolSkillsDir(projectPath, tool));
       if (includeLegacyRoots) {
         skillsDirs.push(

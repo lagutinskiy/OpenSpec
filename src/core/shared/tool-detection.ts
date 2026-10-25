@@ -49,6 +49,7 @@ export const COMMAND_IDS = [
   'archive',
   'bulk-archive',
   'verify',
+  'review',
   'onboard',
   'propose',
 ] as const;
@@ -458,7 +459,6 @@ export function getConfiguredTools(projectRoot: string, view: FileView = DISK_VI
   return configured
     .filter(
       (tool) =>
-        tool.globalSkillsDir ||
         toolHasAnyConfiguredCommand(projectRoot, tool.value, view) ||
         (
           resolveCommandSurfaceCapability(tool.value) === 'adapter-backed' &&

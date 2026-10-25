@@ -62,6 +62,7 @@ const COMMAND_TO_SKILL_NAME: Record<string, string> = {
   'archive': 'openspec-archive-change',
   'bulk-archive': 'openspec-bulk-archive-change',
   'verify': 'openspec-verify-change',
+  'review': 'openspec-review-change',
   'onboard': 'openspec-onboard',
   'propose': 'openspec-propose',
 };
@@ -127,7 +128,7 @@ export function transformToCodexCompatibleSkillReferences(text: string): string 
  * invocation prefix. Converts `/opsx:<command>` patterns to
  * `/openspec-<skill>` so that generated skills do not reference commands
  * that were never generated. Used for channels that are not tied to one
- * tool (e.g. the skills.sh distribution); tool-targeted generation should
+ * target (e.g. a Codex-compatible skill installation); tool-targeted generation should
  * go through getSkillReferenceTransformer instead.
  *
  * Unknown command references are left unchanged.

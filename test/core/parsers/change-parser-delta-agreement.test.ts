@@ -5,7 +5,7 @@ import os from 'os';
 import { ChangeParser } from '../../../src/core/parsers/change-parser.js';
 import { parseDeltaSpec } from '../../../src/core/parsers/requirement-blocks.js';
 import type { Change } from '../../../src/core/schemas/index.js';
-import { runCLI } from '../../helpers/run-cli.js';
+import { runReviewedCLI } from '../../helpers/reviewed-cli.js';
 
 /**
  * `openspec show --json --deltas-only` reads deltas through ChangeParser, while
@@ -267,7 +267,7 @@ async function projectWithDelta(delta: string) {
     XDG_DATA_HOME: path.join(home, '.local', 'share'),
     OPENSPEC_NO_ANIMATION: '1',
   };
-  const cli = (args: string[]) => runCLI(args, { cwd: project, env, timeoutMs: 60_000 });
+  const cli = (args: string[]) => runReviewedCLI(args, { cwd: project, env, timeoutMs: 60_000 });
   const writeChange = async (name: string, spec: string) => {
     expect((await cli(['new', 'change', name])).exitCode).toBe(0);
     const dir = path.join(project, 'openspec', 'changes', name);

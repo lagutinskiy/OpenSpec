@@ -1,3 +1,4 @@
+import { REVIEW_GUIDANCE } from './review-change.js';
 /**
  * Skill Template Workflow Modules
  *
@@ -86,6 +87,8 @@ export function getExploreSkillTemplate(): SkillTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
 
 ---
 
@@ -413,6 +416,8 @@ export function getOpsxExploreCommandTemplate(): CommandTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
 
 **Input**: The argument after \`/opsx:explore\` is whatever the user wants to think about. Could be:
 - A vague idea: "real-time collaboration"

@@ -221,6 +221,10 @@ export const WORKFLOW_PROMPT_META: Record<string, WorkflowPromptMeta> = {
     name: 'Bulk archive',
     description: 'Archive multiple completed changes together',
   },
+  review: {
+    name: 'Review change',
+    description: 'Independently review requirements and code',
+  },
   verify: {
     name: 'Verify change',
     description: 'Run verification checks against a change',

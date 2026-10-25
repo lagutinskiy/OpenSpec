@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 /**
  * `--type` short-circuits the membership check, so the id reached
@@ -28,13 +28,13 @@ describe('validate --type name guard', () => {
   });
 
   it('refuses a traversing spec id', async () => {
-    const result = await runCLI(['validate', '../../secret', '--type', 'spec'], { cwd: testDir });
+    const result = await runReviewedCLI(['validate', '../../secret', '--type', 'spec'], { cwd: testDir });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Spec id must not be '..'");
   });
 
   it('refuses a Windows-separator traversing spec id', async () => {
-    const result = await runCLI(['validate', '..\\..\\secret', '--type', 'spec'], {
+    const result = await runReviewedCLI(['validate', '..\\..\\secret', '--type', 'spec'], {
       cwd: testDir,
     });
     expect(result.exitCode).toBe(1);
@@ -67,20 +67,20 @@ describe('validate --type name guard', () => {
       ].join('\n')
     );
 
-    const result = await runCLI(['validate', 'platform/widgets', '--type', 'spec'], {
+    const result = await runReviewedCLI(['validate', 'platform/widgets', '--type', 'spec'], {
       cwd: testDir,
     });
     expect(result.exitCode).toBe(0);
   });
 
   it('refuses a traversing change name', async () => {
-    const result = await runCLI(['validate', '..', '--type', 'change'], { cwd: testDir });
+    const result = await runReviewedCLI(['validate', '..', '--type', 'change'], { cwd: testDir });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Change name must not be '..'");
   });
 
   it('reports the refusal as JSON for a JSON run', async () => {
-    const result = await runCLI(['validate', '../../secret', '--type', 'spec', '--json'], {
+    const result = await runReviewedCLI(['validate', '../../secret', '--type', 'spec', '--json'], {
       cwd: testDir,
     });
     expect(result.exitCode).toBe(1);

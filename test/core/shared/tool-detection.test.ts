@@ -30,7 +30,7 @@ describe('tool-detection', () => {
 
   describe('SKILL_NAMES', () => {
     it('should contain all skill names matching COMMAND_IDS', () => {
-      expect(SKILL_NAMES).toHaveLength(12);
+      expect(SKILL_NAMES).toHaveLength(13);
       expect(SKILL_NAMES).toContain('openspec-explore');
       expect(SKILL_NAMES).toContain('openspec-new-change');
       expect(SKILL_NAMES).toContain('openspec-continue-change');
@@ -43,23 +43,6 @@ describe('tool-detection', () => {
       expect(SKILL_NAMES).toContain('openspec-verify-change');
       expect(SKILL_NAMES).toContain('openspec-onboard');
       expect(SKILL_NAMES).toContain('openspec-propose');
-    });
-  });
-
-  describe('getToolsWithSkillsDir', () => {
-    it('should return tools that have skillsDir configured', () => {
-      const tools = getToolsWithSkillsDir();
-      expect(tools).toContain('claude');
-      expect(tools).toContain('codeartsagent');
-      expect(tools).toContain('cursor');
-      expect(tools).toContain('devin');
-      expect(tools).toContain('gsd');
-      expect(tools).toContain('dsh');
-      // `--tools all` resolves to exactly this list, so `agents` being here is what
-      // puts the shared target in an `--tools all` run.
-      expect(tools).toContain('agents');
-      expect(tools).toContain('minimax-code');
-      expect(tools.length).toBeGreaterThan(0);
     });
   });
 
@@ -111,38 +94,6 @@ describe('tool-detection', () => {
       expect(status.skillCount).toBe(SKILL_NAMES.length);
     });
 
-    it('should detect MiniMax Code only from its global OpenSpec skill target', async () => {
-      const globalSkill = path.join(
-        testDir,
-        'home',
-        '.minimax',
-        'skills',
-        'openspec-explore',
-        'SKILL.md'
-      );
-      await fs.mkdir(path.dirname(globalSkill), { recursive: true });
-      await fs.writeFile(globalSkill, 'test content');
-
-      expect(getToolSkillStatus(testDir, 'minimax-code')).toMatchObject({
-        configured: true,
-        fullyConfigured: false,
-        skillCount: 1,
-      });
-
-      await fs.rm(path.join(testDir, 'home'), { recursive: true, force: true });
-      const localSkill = path.join(
-        testDir,
-        '.minimax',
-        'skills',
-        'openspec-explore',
-        'SKILL.md'
-      );
-      await fs.mkdir(path.dirname(localSkill), { recursive: true });
-      await fs.writeFile(localSkill, 'test content');
-
-      expect(getToolSkillStatus(testDir, 'minimax-code').configured).toBe(false);
-    });
-
     it('should detect DeepSeek Harness skills under project .dsh/skills', async () => {
       const skillDir = path.join(testDir, '.dsh', 'skills', 'openspec-explore');
       await fs.mkdir(skillDir, { recursive: true });
@@ -175,59 +126,6 @@ describe('tool-detection', () => {
       const states = getToolStates(testDir);
       expect(states.get('claude')?.configured).toBe(true);
       expect(states.get('cursor')?.configured).toBe(false);
-    });
-
-    it('should expose only the marked owner of a shared skill tree as configured', async () => {
-      const skillsDir = path.join(testDir, '.agents', 'skills');
-      const skillDir = path.join(skillsDir, 'openspec-explore');
-      await fs.mkdir(skillDir, { recursive: true });
-      await fs.writeFile(path.join(skillDir, 'SKILL.md'), 'test content');
-      await fs.writeFile(path.join(skillsDir, '.openspec-target'), 'agents\n');
-
-      const states = getToolStates(testDir);
-      expect(states.get('agents')?.configured).toBe(true);
-      expect(states.get('codex')?.configured).toBe(false);
-      expect(getToolSkillStatus(testDir, 'agents').configured).toBe(true);
-      expect(getToolSkillStatus(testDir, 'codex').configured).toBe(false);
-      expect(getToolVersionStatus(testDir, 'codex', '0.23.0').configured).toBe(false);
-    });
-
-    it('should preserve global tool state while reconciling a shared project root', async () => {
-      const sharedSkills = path.join(testDir, '.agents', 'skills');
-      const sharedSkill = path.join(sharedSkills, 'openspec-explore', 'SKILL.md');
-      const globalSkill = path.join(
-        testDir,
-        'home',
-        '.minimax',
-        'skills',
-        'openspec-explore',
-        'SKILL.md'
-      );
-      await fs.mkdir(path.dirname(sharedSkill), { recursive: true });
-      await fs.writeFile(sharedSkill, 'content');
-      await fs.writeFile(path.join(sharedSkills, '.openspec-target'), 'agents\n');
-      await fs.mkdir(path.dirname(globalSkill), { recursive: true });
-      await fs.writeFile(globalSkill, 'content');
-
-      const states = getToolStates(testDir);
-      expect(states.get('agents')?.configured).toBe(true);
-      expect(states.get('codex')?.configured).toBe(false);
-      expect(states.get('minimax-code')?.configured).toBe(true);
-      expect(getConfiguredTools(testDir)).toEqual(['minimax-code', 'agents']);
-    });
-
-    it('should preserve marker-only ownership when delivery intentionally has no skills', async () => {
-      const skillsDir = path.join(testDir, '.agents', 'skills');
-      await fs.mkdir(skillsDir, { recursive: true });
-      await fs.writeFile(path.join(skillsDir, '.openspec-target'), 'agents\n');
-
-      const states = getToolStates(testDir);
-      expect(states.get('agents')).toEqual({
-        configured: true,
-        fullyConfigured: false,
-        skillCount: 0,
-      });
-      expect(states.get('codex')?.configured).toBe(false);
     });
   });
 
@@ -385,47 +283,12 @@ Content here
 
       const { version } = await import('../../../package.json');
       const status = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
 
       expect(status.configured).toBe(true);
       expect(status.generatedByVersion).toBe(version);
       expect(status.needsUpdate).toBe(false);
-    });
-
-    // Command paths vary in shape across adapters: a nested directory with a
-    // per-tool extension (gemini writes TOML), a flat opsx-* file, and — for
-    // cline — a directory that is not the tool's skillsDir at all.
-    it.each([
-      ['gemini', path.join('.gemini', 'commands', 'opsx', 'explore.toml')],
-      ['easycode', path.join('.easycode', 'commands', 'opsx', 'explore.toml')],
-      ['cursor', path.join('.cursor', 'commands', 'opsx-explore.md')],
-      ['cline', path.join('.clinerules', 'workflows', 'opsx-explore.md')],
-    ])('should fingerprint commands-only %s installs', async (toolId, explorePath) => {
-      const { InitCommand } = await import('../../../src/core/init.js');
-      const { saveGlobalConfig } = await import('../../../src/core/global-config.js');
-      saveGlobalConfig({ featureFlags: {}, profile: 'core', delivery: 'commands' });
-
-      const initCommand = new InitCommand({ tools: toolId, force: true });
-      await initCommand.execute(testDir);
-
-      const { version } = await import('../../../package.json');
-      const coreWorkflows = ['propose', 'explore', 'apply', 'update', 'sync', 'archive'];
-
-      // cline's commands live outside its skillsDir (.cline), so a commands-only
-      // install leaves that directory absent entirely.
-      expect(getConfiguredTools(testDir)).toContain(toolId);
-
-      const fresh = getToolVersionStatus(testDir, toolId, version, { workflows: coreWorkflows });
-      expect(fresh.configured).toBe(true);
-      expect(fresh.generatedByVersion).toBe(version);
-      expect(fresh.needsUpdate).toBe(false);
-
-      await fs.writeFile(path.join(testDir, explorePath), 'stale content');
-
-      const drifted = getToolVersionStatus(testDir, toolId, version, { workflows: coreWorkflows });
-      expect(drifted.generatedByVersion).toBeNull();
-      expect(drifted.needsUpdate).toBe(true);
     });
 
     it('should fingerprint a custom profile against its own workflow subset', async () => {
@@ -454,7 +317,7 @@ Content here
       // The core set is a superset of this profile, so comparing against it must
       // report drift — the fingerprint has to use the workflows actually selected.
       const againstCore = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
       expect(againstCore.needsUpdate).toBe(true);
     });
@@ -478,7 +341,7 @@ Content here
 
       const { version } = await import('../../../package.json');
       const status = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
 
       expect(status.generatedByVersion).toBe(version);
@@ -499,7 +362,7 @@ Content here
 
       const { version } = await import('../../../package.json');
       const status = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
 
       expect(status.configured).toBe(true);
@@ -522,7 +385,7 @@ Content here
 
       const { version } = await import('../../../package.json');
       const status = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
 
       expect(status.configured).toBe(true);
@@ -544,7 +407,7 @@ Content here
 
       const { version } = await import('../../../package.json');
       const status = getToolVersionStatus(testDir, 'claude', version, {
-        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'archive'],
+        workflows: ['propose', 'explore', 'apply', 'update', 'sync', 'review', 'verify', 'archive'],
       });
 
       expect(status.configured).toBe(true);
@@ -622,20 +485,6 @@ metadata:
       const cursorStatus = statuses.find(s => s.toolId === 'cursor');
       expect(cursorStatus?.generatedByVersion).toBe('0.23.0');
       expect(cursorStatus?.needsUpdate).toBe(false);
-    });
-
-    it('should treat a marker-only target as configured', async () => {
-      const skillsDir = path.join(testDir, '.agents', 'skills');
-      await fs.mkdir(skillsDir, { recursive: true });
-      await fs.writeFile(path.join(skillsDir, '.openspec-target'), 'agents\n');
-
-      const statuses = getAllToolVersionStatus(testDir, '0.23.0');
-      expect(statuses).toHaveLength(1);
-      expect(statuses[0]).toMatchObject({
-        toolId: 'agents',
-        configured: true,
-        needsUpdate: true,
-      });
     });
   });
 });

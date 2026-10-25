@@ -158,15 +158,17 @@ opencode.json
 # Codex
 .codex/
 
-# Bob
-.bob/
 
-# Trae
-.trae/
 
 # Cursor
 .cursor/
 
-# Standalone binaries (scripts/binary/build.mjs); Bun can leave .bun-build temp files
-dist-bin/
-*.bun-build
+
+# Local execution ledger
+.superpowers/
+
+/artifacts/
+
+docs/superpowers/
+docs/design
+.remember/

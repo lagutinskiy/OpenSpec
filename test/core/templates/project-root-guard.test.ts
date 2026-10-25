@@ -55,13 +55,6 @@ describe('project root guard', () => {
     }
   });
 
-  // Feedback files a GitHub issue through `openspec feedback`; it never reads
-  // or writes a root, so it ships outside both registries and carries neither
-  // the store teaching nor this guard.
-  it('leaves the rootless feedback skill alone', () => {
-    expect(getFeedbackSkillTemplate().instructions).not.toContain('**Project check:**');
-  });
-
   // The CLI contract behind this check - `list` reporting `root: null` instead
   // of fabricating an implicit root - is pinned in
   // test/commands/store-root-selection.test.ts.

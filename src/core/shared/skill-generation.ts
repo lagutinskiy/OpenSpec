@@ -6,6 +6,8 @@
 
 import {
   getExploreSkillTemplate,
+  getReviewChangeSkillTemplate,
+  getOpsxReviewCommandTemplate,
   getNewChangeSkillTemplate,
   getContinueChangeSkillTemplate,
   getApplyChangeSkillTemplate,
@@ -44,8 +46,8 @@ import { OPENSPEC_CLI_ALLOWED_TOOLS } from './allowed-tools.js';
  *
  * `workflowFilter` is both the list of workflows to install and the set a
  * template may refer to, so resolving optional-workflow conditionals here —
- * the one place every generation path (init, update, migration, the skills.sh
- * distribution) already funnels through — keeps a reference to an uninstalled
+ * the one place every generation path (init, update and migration) already
+ * funnels through — keeps a reference to an uninstalled
  * workflow out of every generated file (#1734, umbrella #919).
  *
  * With no filter, every workflow is installed (that is what an unfiltered call
@@ -81,6 +83,7 @@ export interface CommandTemplateEntry {
  */
 export function getSkillTemplates(workflowFilter?: readonly string[]): SkillTemplateEntry[] {
   const all: SkillTemplateEntry[] = [
+    { template: getReviewChangeSkillTemplate(), dirName: 'openspec-review-change', workflowId: 'review' },
     { template: getExploreSkillTemplate(), dirName: 'openspec-explore', workflowId: 'explore' },
     { template: getNewChangeSkillTemplate(), dirName: 'openspec-new-change', workflowId: 'new' },
     { template: getContinueChangeSkillTemplate(), dirName: 'openspec-continue-change', workflowId: 'continue' },
@@ -114,6 +117,7 @@ export function getSkillTemplates(workflowFilter?: readonly string[]): SkillTemp
  */
 export function getCommandTemplates(workflowFilter?: readonly string[]): CommandTemplateEntry[] {
   const all: CommandTemplateEntry[] = [
+    { template: getOpsxReviewCommandTemplate(), id: 'review' },
     { template: getOpsxExploreCommandTemplate(), id: 'explore' },
     { template: getOpsxNewCommandTemplate(), id: 'new' },
     { template: getOpsxContinueCommandTemplate(), id: 'continue' },

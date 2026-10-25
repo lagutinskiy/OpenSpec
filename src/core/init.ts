@@ -23,8 +23,6 @@ import { ANCHORED_OPENSPEC_DIRS, ensureDirectoryAnchor } from './openspec-root.j
 import { getSkillReferenceTransformer, getTransformerForTool, usesNaturalLanguageSkillReferences } from '../utils/command-references.js';
 import {
   AI_TOOLS,
-  getUniversalTool,
-  universalToolFallbackHint,
   OPENSPEC_DIR_NAME,
   AIToolOption,
   resolveToolIdAlias,
@@ -55,7 +53,6 @@ import {
   getSkillTemplates,
   getCommandContents,
   generateSkillContent,
-  hasGlobalSkillTarget,
   resolveToolSkillsDir,
   toolSupportsSkills,
   type ToolSkillStatus,
@@ -79,15 +76,6 @@ import {
   shouldReconcileCommandFilesForTool,
   shouldRemoveSkillsForTool,
 } from './command-surface.js';
-import {
-  writeCopilotCloudFiles,
-  readCopilotCloudOptIn,
-  hasExistingManagedCloudFiles,
-  persistCopilotCloudOptIn,
-  removeCopilotCloudFiles,
-  findUnmanagedCloudFiles,
-  listManagedCloudFiles,
-} from './github-copilot/cloud-agent.js';
 
 const require = createRequire(import.meta.url);
 const { version: OPENSPEC_VERSION } = require('../../package.json');
@@ -122,6 +110,7 @@ const WORKFLOW_TO_SKILL_DIR: Record<string, string> = {
   'archive': 'openspec-archive-change',
   'bulk-archive': 'openspec-bulk-archive-change',
   'verify': 'openspec-verify-change',
+  'review': 'openspec-review-change',
   'onboard': 'openspec-onboard',
   'propose': 'openspec-propose',
 };
@@ -138,12 +127,7 @@ type InitCommandOptions = {
   profile?: string;
   /** Commander's --no-animation flag: false disables the welcome animation. */
   animation?: boolean;
-  /**
-   * Explicit opt-in/out for GitHub Copilot cloud coding-agent files.
-   * `--copilot-cloud` sets true, `--no-copilot-cloud` sets false; undefined
-   * leaves the decision to config, migration, or an interactive prompt.
-   */
-  copilotCloud?: boolean;
+
 };
 
 type ValidatedInitTool = {
@@ -152,7 +136,6 @@ type ValidatedInitTool = {
   skillsDir?: string;
   skillsPath: string;
   skillsRoot: string;
-  isGlobalSkillTarget: boolean;
   wasConfigured: boolean;
   writesSkills: boolean;
 };
@@ -176,7 +159,6 @@ export class InitCommand {
   private readonly interactiveOption?: boolean;
   private readonly profileOverride?: string;
   private readonly animation: boolean;
-  private readonly copilotCloudOption?: boolean;
 
   constructor(options: InitCommandOptions = {}) {
     this.toolsArg = options.tools;
@@ -185,7 +167,6 @@ export class InitCommand {
     this.interactiveOption = options.interactive;
     this.profileOverride = options.profile;
     this.animation = options.animation ?? true;
-    this.copilotCloudOption = options.copilotCloud;
   }
 
   async execute(targetPath: string): Promise<void> {
@@ -295,13 +276,6 @@ export class InitCommand {
       if (kept) console.log(chalk.dim(kept));
     }
 
-    // Decide whether to generate GitHub Copilot cloud files. This is opt-in
-    // (see cloud-agent.ts): selecting the Copilot tool no longer silently
-    // writes a GitHub Actions workflow into the user's .github/. The decision
-    // is made before generation so the write can be gated, and persisted after
-    // config.yaml exists so future non-interactive updates honor it.
-    const copilotDecision = await this.resolveCopilotCloudDecision(projectPath, validatedTools);
-
     // Pointer repos only receive integrations. Their planning structure and
     // config stay in the declared store.
     if (!integrationsOnly) {
@@ -311,8 +285,7 @@ export class InitCommand {
     // Generate skills and commands for each tool
     const results = await this.generateSkillsAndCommands(
       projectPath,
-      validatedTools,
-      copilotDecision.write
+      validatedTools
     );
 
     // Legacy cleanup was deferred to avoid interfering with skill/command generation;
@@ -327,49 +300,8 @@ export class InitCommand {
       ? 'exists' as const
       : await this.createConfig(openspecPath, extendMode);
 
-    // Persist an explicit Copilot cloud decision so `openspec update` (which
-    // never prompts) honors it. Best-effort: a config-write failure must not
-    // fail an otherwise-successful init.
-    if (!integrationsOnly && copilotDecision.persist !== undefined) {
-      try {
-        await persistCopilotCloudOptIn(projectPath, copilotDecision.persist);
-      } catch {
-        // Non-fatal: the files (if any) were still written correctly.
-      }
-    }
-
-    // An explicit opt-out means "no cloud files here": clean up any that a
-    // previous run (or an older OpenSpec) generated. Only OpenSpec-managed
-    // files are removed — a user-customized file is preserved.
-    let copilotRemoved = 0;
-    if (copilotDecision.optedOut) {
-      try {
-        copilotRemoved = await removeCopilotCloudFiles(projectPath);
-      } catch {
-        // Non-fatal: removal targets files from a prior run; a failure here
-        // just leaves them for the next `openspec update` to clean up.
-      }
-    }
-
-    // Report the cloud outcome from what is actually on disk after the write,
-    // not from the decision alone: writing over a user-owned file is a no-op,
-    // and the alternate-agent path can remove a managed file — so list only
-    // managed files that exist, and separately flag any left-untouched ones.
-    const copilotSucceeded = [...results.createdTools, ...results.refreshedTools].some(
-      (tool) => tool.value === 'github-copilot'
-    );
-    const wroteCloud = copilotDecision.write && copilotSucceeded;
-    const copilotPresent = wroteCloud ? await listManagedCloudFiles(projectPath) : [];
-    const copilotCollisions = wroteCloud ? await findUnmanagedCloudFiles(projectPath) : [];
-
-    // Display success message
-    this.displaySuccessMessage(projectPath, validatedTools, results, configStatus, {
-      write: copilotDecision.write,
-      skippedUndecided: copilotDecision.skippedUndecided,
-      present: copilotPresent,
-      collisions: copilotCollisions,
-      removed: copilotRemoved,
-    });
+    // Display the result for the selected local harness integrations.
+    this.displaySuccessMessage(projectPath, validatedTools, results, configStatus);
     if (results.failedTools.length > 0) {
       throw new Error(
         `OpenSpec setup failed for: ${results.failedTools.map((tool) => tool.name).join(', ')}`
@@ -398,73 +330,6 @@ export class InitCommand {
     if (this.interactiveOption === false) return false;
     if (this.toolsArg !== undefined) return false;
     return isInteractive({ interactive: this.interactiveOption });
-  }
-
-  /**
-   * Decide whether to generate GitHub Copilot cloud files, and whether to
-   * persist that decision. Precedence:
-   *   1. `--copilot-cloud` / `--no-copilot-cloud` flag (explicit this run)
-   *   2. persisted opt-in in config.yaml
-   *   3. managed files already present (migration for pre-opt-in projects)
-   *   4. interactive confirm (default No)
-   *   5. non-interactive with no signal: skip, and don't persist a default
-   *
-   * @returns `write` — generate the files this run; `persist` — value to write
-   *   back to config (undefined = leave config untouched); `optedOut` — the user
-   *   explicitly declined, so any already-generated managed files should be
-   *   removed; `skippedUndecided` — selected but no signal and couldn't ask, so
-   *   the caller can hint that the opt-in exists.
-   */
-  private async resolveCopilotCloudDecision(
-    projectPath: string,
-    tools: ValidatedInitTool[]
-  ): Promise<{ write: boolean; persist?: boolean; optedOut: boolean; skippedUndecided: boolean }> {
-    const copilotSelected = tools.some((tool) => tool.value === 'github-copilot');
-    if (!copilotSelected) {
-      // A flag that can't apply is a likely mistake — say so rather than no-op.
-      if (this.copilotCloudOption !== undefined) {
-        console.log(
-          chalk.yellow(
-            '--copilot-cloud/--no-copilot-cloud was ignored because the github-copilot tool was not selected.'
-          )
-        );
-      }
-      return { write: false, optedOut: false, skippedUndecided: false };
-    }
-
-    if (this.copilotCloudOption !== undefined) {
-      return {
-        write: this.copilotCloudOption,
-        persist: this.copilotCloudOption,
-        optedOut: !this.copilotCloudOption,
-        skippedUndecided: false,
-      };
-    }
-
-    const persistedOptIn = readCopilotCloudOptIn(projectPath);
-    if (typeof persistedOptIn === 'boolean') {
-      return { write: persistedOptIn, optedOut: !persistedOptIn, skippedUndecided: false };
-    }
-
-    if (await hasExistingManagedCloudFiles(projectPath)) {
-      return { write: true, optedOut: false, skippedUndecided: false };
-    }
-
-    if (this.canPromptInteractively()) {
-      const { confirm } = await import('@inquirer/prompts');
-      const answer = await confirm({
-        message:
-          'Set up GitHub Copilot cloud coding-agent files? This is for the GitHub-hosted ' +
-          'Copilot coding agent (github.com), not Copilot in your editor. It writes two files: ' +
-          '.github/workflows/copilot-setup-steps.yml and .github/agents/openspec.agent.md.',
-        default: false,
-      });
-      return { write: answer, persist: answer, optedOut: !answer, skippedUndecided: false };
-    }
-
-    // Non-interactive with no explicit signal: don't write, and leave the
-    // decision unpersisted so a later interactive run can still prompt.
-    return { write: false, optedOut: false, skippedUndecided: true };
   }
 
   private resolveProfileOverride(): Profile | undefined {
@@ -660,9 +525,8 @@ export class InitCommand {
       if (detectedToolIds.size > 0) {
         return [...detectedToolIds];
       }
-      const fallbackHint = universalToolFallbackHint(validTools);
       throw new Error(
-        `No tools detected and no --tools flag provided. Valid tools:\n  ${validTools.join('\n  ')}\n\nUse --tools all, --tools none, or --tools claude,cursor,...${fallbackHint ? `\n${fallbackHint}` : ''}`
+        `No tools detected and no --tools flag provided. Valid tools:\n  ${validTools.join('\n  ')}\n\nUse --tools all, --tools none, or a comma-separated list of tool IDs.`
       );
     }
 
@@ -686,7 +550,6 @@ export class InitCommand {
         return {
           name: tool?.name || toolId,
           value: toolId,
-          searchAliases: tool?.searchAliases,
           configured,
           detected: detected && !configured,
           preSelected: configured || (shouldPreselectDetected && detected && !configured),
@@ -720,19 +583,10 @@ export class InitCommand {
       console.log(`Detected tool directories: ${detectedOnlyNames.join(', ')} (${detectionLabel})`);
     }
 
-    // A search that matches nothing is where someone whose assistant is not on
-    // the list gives up (#653), so name the vendor-neutral entry right there.
-    const universalTool = getUniversalTool();
-    const universalHint =
-      universalTool && validTools.includes(universalTool.value)
-        ? `Tool not listed? Clear the search and pick "${universalTool.name}".`
-        : undefined;
-
     const selectedTools = await searchableMultiSelect({
       message: `Select tools to set up (${validTools.length} available)`,
       pageSize: 15,
       choices: sortedChoices,
-      emptyHint: universalHint,
       validate: (selected: string[]) => selected.length > 0 || 'Select at least one tool',
     });
 
@@ -792,9 +646,8 @@ export class InitCommand {
     );
 
     if (invalidTokens.length > 0) {
-      const fallbackHint = universalToolFallbackHint([...availableSet]);
       throw new Error(
-        `Invalid tool(s): ${invalidTokens.join(', ')}. Available values: ${availableList}${fallbackHint ? `\n${fallbackHint}` : ''}`
+        `Invalid tool(s): ${invalidTokens.join(', ')}. Available values: ${availableList}`
       );
     }
 
@@ -876,14 +729,12 @@ export class InitCommand {
       if (!toolSupportsSkills(tool)) continue;
       const preState = toolStates.get(tool.value);
       const skillsPath = resolveToolSkillsDir(projectPath, tool);
-      const isGlobalSkillTarget = hasGlobalSkillTarget(tool);
       validatedTools.push({
         value: tool.value,
         name: tool.name,
         skillsDir: tool.skillsDir,
         skillsPath,
-        skillsRoot: isGlobalSkillTarget ? skillsPath : projectPath,
-        isGlobalSkillTarget,
+        skillsRoot: projectPath,
         wasConfigured: preState?.configured ?? false,
         writesSkills: !tool.skillsDir || skillWriters.has(tool.value),
       });
@@ -949,8 +800,7 @@ export class InitCommand {
    */
   private async generateSkillsAndCommands(
     projectPath: string,
-    tools: ValidatedInitTool[],
-    writeCopilotCloud: boolean
+    tools: ValidatedInitTool[]
   ): Promise<{
     createdTools: typeof tools;
     refreshedTools: typeof tools;
@@ -1011,8 +861,7 @@ export class InitCommand {
         }
         if (
           shouldRemoveSkillsForTool(tool.value, delivery) &&
-          tool.writesSkills &&
-          !tool.isGlobalSkillTarget
+          tool.writesSkills
         ) {
           removedSkillCount += await this.removeSkillDirs(tool.skillsRoot, tool.skillsPath);
           // Retain an explicit selection even when this delivery mode produces
@@ -1040,9 +889,6 @@ export class InitCommand {
         }
         if (shouldReconcileCommandFilesForTool(tool.value, delivery)) {
           removedCommandCount += await this.removeCommandFiles(projectPath, tool.value);
-        }
-        if (tool.value === 'github-copilot' && writeCopilotCloud) {
-          await writeCopilotCloudFiles(projectPath);
         }
 
         spinner.succeed(`Setup complete for ${tool.name}`);
@@ -1191,14 +1037,7 @@ export class InitCommand {
       removedCommandCount: number;
       removedSkillCount: number;
     },
-    configStatus: 'created' | 'exists' | 'skipped',
-    copilot: {
-      write: boolean;
-      skippedUndecided: boolean;
-      present: string[];
-      collisions: string[];
-      removed: number;
-    }
+    configStatus: 'created' | 'exists' | 'skipped'
   ): void {
     console.log();
     console.log(
@@ -1223,9 +1062,7 @@ export class InitCommand {
       const profile: Profile = (this.profileOverride as Profile) ?? globalConfig.profile ?? 'core';
       const delivery: Delivery = globalConfig.delivery ?? 'both';
       const workflows = getProfileWorkflows(profile, globalConfig.workflows);
-      const usesGlobalSkillTarget = successfulTools.some((tool) => tool.isGlobalSkillTarget);
-
-      if (!usesGlobalSkillTarget) {
+      {
         const toolDirs = [
           ...new Set(
             successfulTools
@@ -1250,39 +1087,6 @@ export class InitCommand {
         } else if (commandCount > 0) {
           console.log(`${commandCount} commands in ${toolDirs}/`);
         }
-      } else {
-        const skillTools = successfulTools.filter((tool) =>
-          shouldGenerateSkillsForTool(tool.value, delivery)
-        );
-        const skillCount = skillTools.length * getSkillTemplates(workflows).length;
-        if (skillCount > 0) {
-          const skillDirs = [...new Set(skillTools.map((tool) => tool.skillsPath))];
-          console.log(`${skillCount} skills in ${skillDirs.join(', ')}`);
-        }
-
-        const commandContents = getCommandContents(workflows);
-        const commandTools = successfulTools.filter((tool) =>
-          shouldGenerateCommandsForTool(tool.value, delivery)
-        );
-        const commandCount = commandTools.length * commandContents.length;
-        if (commandCount > 0) {
-          const commandDirs = [
-            ...new Set(
-              commandTools.flatMap((tool) => {
-                const adapter = CommandAdapterRegistry.get(tool.value);
-                if (!adapter) return [];
-                return commandContents.map((command) => {
-                  const commandPath = adapter.getFilePath(command.id);
-                  const absolutePath = path.isAbsolute(commandPath)
-                    ? commandPath
-                    : path.join(projectPath, commandPath);
-                  return path.dirname(absolutePath);
-                });
-              })
-            ),
-          ];
-          console.log(`${commandCount} commands in ${commandDirs.join(', ')}`);
-        }
       }
     }
 
@@ -1303,41 +1107,6 @@ export class InitCommand {
     }
     if (results.removedSkillCount > 0) {
       console.log(chalk.dim(`Removed: ${results.removedSkillCount} skill directories (delivery: commands)`));
-    }
-
-    // GitHub Copilot cloud files are opt-in — report what is actually on disk:
-    // list the managed files that now exist (never files we didn't write), flag
-    // any user-owned file we left untouched, note an opt-out cleanup, or (when
-    // skipped for want of a signal) say how to turn them on.
-    const copilotSucceeded = successfulTools.some((tool) => tool.value === 'github-copilot');
-    if (copilotSucceeded && copilot.write) {
-      if (copilot.present.length > 0) {
-        console.log(`GitHub Copilot cloud files: ${copilot.present.join(', ')}`);
-      }
-      if (copilot.collisions.length > 0) {
-        console.log(
-          chalk.dim(
-            `Left your existing ${copilot.collisions.join(' and ')} untouched — add the OpenSpec ` +
-              `install step by hand so the Copilot cloud agent can run openspec.`
-          )
-        );
-      }
-    } else if (copilotSucceeded && copilot.removed > 0) {
-      console.log(
-        chalk.dim(`Removed: ${copilot.removed} Copilot cloud agent file(s) (opted out of cloud files)`)
-      );
-    } else if (copilotSucceeded && copilot.skippedUndecided) {
-      console.log(
-        chalk.dim("Skipped GitHub Copilot cloud files (opt-in). Enable with 'openspec init --copilot-cloud'.")
-      );
-    }
-
-    // Show manual setup notes for tools that need extra configuration
-    for (const tool of successfulTools) {
-      const setupNote = AI_TOOLS.find((t) => t.value === tool.value)?.setupNote;
-      if (setupNote) {
-        console.log(chalk.yellow(`Setup required for ${tool.name}: ${setupNote}`));
-      }
     }
 
     // Config status
@@ -1466,8 +1235,6 @@ export class InitCommand {
 
     // Links
     console.log();
-    console.log(`Learn more: ${chalk.cyan('https://github.com/Fission-AI/OpenSpec')}`);
-    console.log(`Feedback:   ${chalk.cyan('https://github.com/Fission-AI/OpenSpec/issues')}`);
 
     // Restart instruction for successfully configured IDE/editor-resident tools
     // with a supported surface under the active delivery. The rule and wording live in

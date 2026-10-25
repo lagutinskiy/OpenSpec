@@ -8,7 +8,7 @@ import {
   registerStore,
 } from '../../src/core/index.js';
 import { writeStoreMetadataState } from '../../src/core/store/foundation.js';
-import { runCLI, type RunCLIResult } from '../helpers/run-cli.js';
+import { runReviewedCLI, type RunCLIResult } from '../helpers/reviewed-cli.js';
 import { cleanupTempPath } from '../helpers/temp-cleanup.js';
 import { writeSpec } from '../helpers/openspec-fixtures.js';
 
@@ -150,11 +150,11 @@ describe('store root selection for normal commands', () => {
         writeSpec(appRepo, 'local-only', spec);
       }
 
-      const changes = await runCLI(['list', '--json', ...storeArgs], { cwd: appRepo, env });
+      const changes = await runReviewedCLI(['list', '--json', ...storeArgs], { cwd: appRepo, env });
       expect(changes.exitCode).toBe(0);
       expect(parseJson(changes).changes.map((change: any) => change.name)).toEqual(['billing']);
 
-      const inventory = await runCLI(['list', '--specs', '--json', ...storeArgs], { cwd: appRepo, env });
+      const inventory = await runReviewedCLI(['list', '--specs', '--json', ...storeArgs], { cwd: appRepo, env });
       expect(inventory.exitCode).toBe(0);
       const json = parseJson(inventory);
       expect(json.specs).toEqual([
@@ -168,7 +168,7 @@ describe('store root selection for normal commands', () => {
       });
 
       for (const { id } of json.specs) {
-        const shown = await runCLI(
+        const shown = await runReviewedCLI(
           ['show', id, '--type', 'spec', '--json', '--no-scenarios', ...storeArgs],
           { cwd: appRepo, env }
         );
@@ -182,7 +182,7 @@ describe('store root selection for normal commands', () => {
         });
 
         // The overview omits scenarios; decisions use the complete spec.
-        const full = await runCLI(['show', id, '--type', 'spec', ...storeArgs], { cwd: appRepo, env });
+        const full = await runReviewedCLI(['show', id, '--type', 'spec', ...storeArgs], { cwd: appRepo, env });
         expect(full.exitCode).toBe(0);
         expect(full.stdout.trim()).toBe(spec.trim());
       }
@@ -192,7 +192,7 @@ describe('store root selection for normal commands', () => {
 
   describe('selecting a registered store by id', () => {
     it('creates a change only in the store and names the root on stderr', async () => {
-      const result = await runCLI(['new', 'change', 'add-billing', '--store', 'team-context'], {
+      const result = await runReviewedCLI(['new', 'change', 'add-billing', '--store', 'team-context'], {
         cwd: appRepo,
         env,
       });
@@ -210,7 +210,7 @@ describe('store root selection for normal commands', () => {
     });
 
     it('includes the shared root block and absolute paths in new change JSON', async () => {
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['new', 'change', 'add-billing', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -235,7 +235,7 @@ describe('store root selection for normal commands', () => {
       createChange(localRepo, 'local-change');
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(['list', '--json', '--store', 'team-context'], {
+      const result = await runReviewedCLI(['list', '--json', '--store', 'team-context'], {
         cwd: localRepo,
         env,
       });
@@ -259,13 +259,13 @@ describe('store root selection for normal commands', () => {
         version: 1,
         id: 'blank-context',
       });
-      const registered = await runCLI(
+      const registered = await runReviewedCLI(
         ['store', 'register', blankStoreRoot, '--json'],
         { cwd: appRepo, env }
       );
       expect(registered.exitCode).toBe(0);
 
-      const result = await runCLI(['list', '--json', '--store', 'blank-context'], {
+      const result = await runReviewedCLI(['list', '--json', '--store', 'blank-context'], {
         cwd: appRepo,
         env,
       });
@@ -282,7 +282,7 @@ describe('store root selection for normal commands', () => {
     it('reads, validates, shows, and reports status in the selected store', async () => {
       createChange(storeRoot, 'store-change');
 
-      const status = await runCLI(
+      const status = await runReviewedCLI(
         ['status', '--change', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -298,7 +298,7 @@ describe('store root selection for normal commands', () => {
 
       // The batch sweep must select the same root and carry the same store
       // context per change as the single-change path above.
-      const batch = await runCLI(['status', '--all', '--store', 'team-context', '--json'], {
+      const batch = await runReviewedCLI(['status', '--all', '--store', 'team-context', '--json'], {
         cwd: appRepo,
         env,
       });
@@ -310,7 +310,7 @@ describe('store root selection for normal commands', () => {
       ]);
       expect(batchJson.changes[0]).toEqual({ ...statusJson, root: undefined });
 
-      const instructions = await runCLI(
+      const instructions = await runReviewedCLI(
         ['instructions', 'design', '--change', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -321,7 +321,7 @@ describe('store root selection for normal commands', () => {
       expect(path.isAbsolute(instructionsJson.changeDir)).toBe(true);
       expect(instructionsJson.changeDir).toContain(storeRoot);
 
-      const show = await runCLI(
+      const show = await runReviewedCLI(
         ['show', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -330,7 +330,7 @@ describe('store root selection for normal commands', () => {
       expect(showJson.id).toBe('store-change');
       expect(showJson.root.store_id).toBe('team-context');
 
-      const validate = await runCLI(
+      const validate = await runReviewedCLI(
         ['validate', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -358,11 +358,11 @@ operations:
 `
       );
 
-      const applyResult = await runCLI(
+      const applyResult = await runReviewedCLI(
         ['instructions', 'apply', '--change', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
-      const archiveResult = await runCLI(
+      const archiveResult = await runReviewedCLI(
         ['instructions', 'archive', '--change', 'store-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -385,7 +385,7 @@ operations:
     it('runs bulk validation against the selected store', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(['validate', '--all', '--store', 'team-context', '--json'], {
+      const result = await runReviewedCLI(['validate', '--all', '--store', 'team-context', '--json'], {
         cwd: appRepo,
         env,
       });
@@ -398,7 +398,7 @@ operations:
     it('archives a change into the store archive with JSON output', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'store-change', '--store', 'team-context', '--json', '--yes'],
         { cwd: appRepo, env }
       );
@@ -429,7 +429,7 @@ operations:
     it('keeps show stdout as the raw markdown payload', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(['show', 'store-change', '--store', 'team-context'], {
+      const result = await runReviewedCLI(['show', 'store-change', '--store', 'team-context'], {
         cwd: appRepo,
         env,
       });
@@ -456,7 +456,7 @@ operations:
         deltaSpec: '## MODIFIED Requirements\n\n### Requirement: Billing SHALL work\nThe system SHALL create bills monthly.\n\n#### Scenario: Creates bills\n- **WHEN** a billing period ends\n- **THEN** a bill is created\n',
       });
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['show', 'store-change', '--store', 'team-context', '--diff'],
         { cwd: appRepo, env }
       );
@@ -470,7 +470,7 @@ operations:
     it('keeps instructions stdout as the artifact payload', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['instructions', 'design', '--change', 'store-change', '--store', 'team-context'],
         { cwd: appRepo, env }
       );
@@ -482,7 +482,7 @@ operations:
     it('writes the status banner to stderr in human mode', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['status', '--change', 'store-change', '--store', 'team-context'],
         { cwd: appRepo, env }
       );
@@ -495,7 +495,7 @@ operations:
 
   describe('selector errors', () => {
     it('rejects --store-path with register guidance', async () => {
-      const result = await runCLI(['new', 'change', 'nope', '--store-path', '/x'], {
+      const result = await runReviewedCLI(['new', 'change', 'nope', '--store-path', '/x'], {
         cwd: appRepo,
         env,
       });
@@ -508,7 +508,7 @@ operations:
     });
 
     it('rejects show --store-path despite allowUnknownOption', async () => {
-      const result = await runCLI(['show', '--store-path', '/x'], { cwd: appRepo, env });
+      const result = await runReviewedCLI(['show', '--store-path', '/x'], { cwd: appRepo, env });
       expect(result.exitCode).toBe(1);
       const output = result.stdout + result.stderr;
       expect(output).toContain('store register');
@@ -518,8 +518,8 @@ operations:
       const expected =
         "Unknown store 'team-contxt'. Registered stores: team-context.";
 
-      const status = await runCLI(['status', '--store', 'team-contxt'], { cwd: appRepo, env });
-      const list = await runCLI(['list', '--store', 'team-contxt'], { cwd: appRepo, env });
+      const status = await runReviewedCLI(['status', '--store', 'team-contxt'], { cwd: appRepo, env });
+      const list = await runReviewedCLI(['list', '--store', 'team-contxt'], { cwd: appRepo, env });
 
       expect(status.exitCode).toBe(1);
       expect(list.exitCode).toBe(1);
@@ -528,13 +528,13 @@ operations:
     });
 
     it('rejects an invalid store id format before registry lookup', async () => {
-      const result = await runCLI(['list', '--store', 'Bad_Id'], { cwd: appRepo, env });
+      const result = await runReviewedCLI(['list', '--store', 'Bad_Id'], { cwd: appRepo, env });
       expect(result.exitCode).toBe(1);
       expect(result.stdout + result.stderr).toContain('kebab-case');
     });
 
     it('emits machine-readable resolver failures in JSON mode', async () => {
-      const result = await runCLI(['status', '--json', '--store', 'team-contxt'], {
+      const result = await runReviewedCLI(['status', '--json', '--store', 'team-contxt'], {
         cwd: appRepo,
         env,
       });
@@ -551,7 +551,7 @@ operations:
         '{not yaml: ['
       );
 
-      const result = await runCLI(['status', '--json', '--store', 'team-context'], {
+      const result = await runReviewedCLI(['status', '--json', '--store', 'team-context'], {
         cwd: appRepo,
         env,
       });
@@ -572,7 +572,7 @@ operations:
         globalDataDir,
       });
 
-      const result = await runCLI(['list', '--store', 'broken-context'], {
+      const result = await runReviewedCLI(['list', '--store', 'broken-context'], {
         cwd: appRepo,
         env,
       });
@@ -585,7 +585,7 @@ operations:
 
   describe('default resolution without --store', () => {
     it('fails with a store hint instead of scaffolding when no root exists', async () => {
-      const result = await runCLI(['new', 'change', 'foo'], { cwd: appRepo, env });
+      const result = await runReviewedCLI(['new', 'change', 'foo'], { cwd: appRepo, env });
       expect(result.exitCode).toBe(1);
       const output = result.stdout + result.stderr;
       expect(output).toContain('team-context');
@@ -601,7 +601,7 @@ operations:
         'version: 1\nname: platform\ncontext: null\nlinks: {}\n'
       );
 
-      const result = await runCLI(['status'], { cwd: appRepo, env });
+      const result = await runReviewedCLI(['status'], { cwd: appRepo, env });
       expect(result.exitCode).toBe(1);
       expect(result.stdout + result.stderr).toContain('team-context');
     });
@@ -616,7 +616,7 @@ operations:
       );
       createChange(localRepo, 'local-change');
 
-      const result = await runCLI(['status', '--change', 'local-change', '--json'], {
+      const result = await runReviewedCLI(['status', '--change', 'local-change', '--json'], {
         cwd: localRepo,
         env,
       });
@@ -630,7 +630,7 @@ operations:
     it('works inside the standalone repo itself without a flag', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(['status', '--change', 'store-change', '--json'], {
+      const result = await runReviewedCLI(['status', '--change', 'store-change', '--json'], {
         cwd: storeRoot,
         env,
       });
@@ -646,7 +646,7 @@ operations:
         XDG_DATA_HOME: path.join(tempDir, 'data-empty'),
       };
 
-      const result = await runCLI(['status', '--json'], { cwd: appRepo, env: isolatedEnv });
+      const result = await runReviewedCLI(['status', '--json'], { cwd: appRepo, env: isolatedEnv });
       expect(result.exitCode).toBe(0);
       const json = parseJson(result);
       expect(json.changes).toEqual([]);
@@ -662,7 +662,7 @@ operations:
         XDG_DATA_HOME: path.join(tempDir, 'data-empty'),
       };
 
-      const created = await runCLI(['new', 'change', 'adopt-me'], {
+      const created = await runReviewedCLI(['new', 'change', 'adopt-me'], {
         cwd: appRepo,
         env: isolatedEnv,
       });
@@ -677,7 +677,7 @@ operations:
       expect(fs.existsSync(path.join(appRepo, 'openspec', 'changes', 'adopt-me'))).toBe(true);
 
       // The root exists now, so the notice must not repeat on every change.
-      const second = await runCLI(['new', 'change', 'already-adopted'], {
+      const second = await runReviewedCLI(['new', 'change', 'already-adopted'], {
         cwd: appRepo,
         env: isolatedEnv,
       });
@@ -695,7 +695,7 @@ operations:
       const nested = path.join(appRepo, 'services', 'billing');
       fs.mkdirSync(nested, { recursive: true });
 
-      const created = await runCLI(['new', 'change', 'adopt-the-subdir'], {
+      const created = await runReviewedCLI(['new', 'change', 'adopt-the-subdir'], {
         cwd: nested,
         env: isolatedEnv,
       });
@@ -714,7 +714,7 @@ operations:
         XDG_DATA_HOME: path.join(tempDir, 'data-empty'),
       };
 
-      const result = await runCLI(['new', 'change', 'adopt-me-quietly', '--json'], {
+      const result = await runReviewedCLI(['new', 'change', 'adopt-me-quietly', '--json'], {
         cwd: appRepo,
         env: isolatedEnv,
       });
@@ -734,7 +734,7 @@ operations:
       fs.mkdirSync(path.join(appRepo, 'openspec'), { recursive: true });
       fs.writeFileSync(path.join(appRepo, 'openspec', 'project.md'), '# Project\n');
 
-      const result = await runCLI(['list', '--json'], { cwd: appRepo, env: isolatedEnv });
+      const result = await runReviewedCLI(['list', '--json'], { cwd: appRepo, env: isolatedEnv });
       expect(result.exitCode).toBe(0);
       expect(result.stderr).toBe('');
 
@@ -759,7 +759,7 @@ operations:
         ['list'],
         ['list', '--specs'],
       ]) {
-        const result = await runCLI(args, { cwd: appRepo, env: isolatedEnv });
+        const result = await runReviewedCLI(args, { cwd: appRepo, env: isolatedEnv });
         expect(result.exitCode).toBe(1);
         expect(result.stdout).toBe('');
         expect(result.stderr).toContain(
@@ -784,7 +784,7 @@ operations:
         ['list', '--json'],
         ['list', '--specs', '--json'],
       ]) {
-        const result = await runCLI(args, { cwd: appRepo, env: isolatedEnv });
+        const result = await runReviewedCLI(args, { cwd: appRepo, env: isolatedEnv });
         expect(result.exitCode).toBe(1);
         expect(result.stderr).toBe('');
 
@@ -811,7 +811,7 @@ operations:
     // an implicit root here would read as "set up" and the workflow would
     // scaffold a change into an unrelated repository.
     it('reports a missing root as JSON when only stores are registered', async () => {
-      const result = await runCLI(['list', '--json'], { cwd: appRepo, env });
+      const result = await runReviewedCLI(['list', '--json'], { cwd: appRepo, env });
 
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toBe('');
@@ -834,7 +834,7 @@ operations:
       };
       createOpenSpecRoot(appRepo);
 
-      const result = await runCLI(['validate', '--all', '--json'], {
+      const result = await runReviewedCLI(['validate', '--all', '--json'], {
         cwd: appRepo,
         env: isolatedEnv,
       });
@@ -856,7 +856,7 @@ operations:
         XDG_DATA_HOME: path.join(tempDir, 'data-empty'),
       };
 
-      const result = await runCLI(['validate', 'missing'], {
+      const result = await runReviewedCLI(['validate', 'missing'], {
         cwd: appRepo,
         env: isolatedEnv,
       });
@@ -870,7 +870,7 @@ operations:
     it('fails without a change name instead of opening a picker', async () => {
       createChange(storeRoot, 'store-change');
 
-      const result = await runCLI(['archive', '--store', 'team-context', '--json'], {
+      const result = await runReviewedCLI(['archive', '--store', 'team-context', '--json'], {
         cwd: appRepo,
         env,
       });
@@ -892,13 +892,13 @@ operations:
         version: 1,
         id: 'archive-blank-context',
       });
-      const registered = await runCLI(
+      const registered = await runReviewedCLI(
         ['store', 'register', blankStoreRoot, '--json'],
         { cwd: appRepo, env }
       );
       expect(registered.exitCode).toBe(0);
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'missing-change', '--store', 'archive-blank-context', '--json', '--yes'],
         { cwd: appRepo, env }
       );
@@ -915,7 +915,7 @@ operations:
     it('reports validation failures as diagnostics without stdout prose', async () => {
       createChange(storeRoot, 'bad-change', { deltaSpec: INVALID_DELTA_SPEC });
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'bad-change', '--store', 'team-context', '--json', '--yes'],
         { cwd: appRepo, env }
       );
@@ -933,7 +933,7 @@ operations:
     it('keeps stdout pure when REMOVED deltas target a new spec', async () => {
       createChange(storeRoot, 'removed-change', { deltaSpec: REMOVED_ONLY_DELTA_SPEC });
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'removed-change', '--store', 'team-context', '--json', '--yes', '--no-validate'],
         { cwd: appRepo, env }
       );
@@ -963,7 +963,7 @@ operations:
         '# zzz-bad\n\n## Purpose\nLegacy.\n\n## Requirements\n\n### Requirement: Old rule SHALL hold\nThe system SHALL hold.\n';
       fs.writeFileSync(path.join(badTargetDir, 'spec.md'), badTargetContent);
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'two-spec-change', '--store', 'team-context', '--json', '--yes'],
         { cwd: appRepo, env }
       );
@@ -988,7 +988,7 @@ operations:
     it('reports spec-update failures as diagnostics without stdout prose', async () => {
       createChange(storeRoot, 'modified-change', { deltaSpec: MODIFIED_ONLY_DELTA_SPEC });
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'modified-change', '--store', 'team-context', '--json', '--yes', '--no-validate'],
         { cwd: appRepo, env }
       );
@@ -1005,7 +1005,7 @@ operations:
     it('refuses incomplete tasks without --yes', async () => {
       createChange(storeRoot, 'wip-change', { tasksDone: false });
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['archive', 'wip-change', '--store', 'team-context', '--json'],
         { cwd: appRepo, env }
       );
@@ -1023,7 +1023,7 @@ operations:
       const localRepo = path.join(tempDir, 'initiative-repo');
       createOpenSpecRoot(localRepo);
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['new', 'change', 'linked-change', '--initiative', 'billing-launch'],
         { cwd: localRepo, env }
       );
@@ -1047,7 +1047,7 @@ operations:
         '.openspec.yaml'
       );
 
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['set', 'change', 'existing-change', '--initiative', 'billing-launch'],
         { cwd: localRepo, env }
       );
@@ -1055,7 +1055,7 @@ operations:
       expect(result.stdout + result.stderr).toContain('unknown command');
       expect(fs.existsSync(metadataPath)).toBe(false);
 
-      const help = await runCLI(['--help'], { cwd: localRepo, env });
+      const help = await runReviewedCLI(['--help'], { cwd: localRepo, env });
       expect(help.stdout).not.toContain('Set checked-in OpenSpec metadata');
       expect(help.stdout).not.toMatch(/^\s*set\s/m);
     });
@@ -1063,7 +1063,7 @@ operations:
 
   describe('setup and register point to --store usage', () => {
     it('shows --store usage after setup', async () => {
-      const result = await runCLI(
+      const result = await runReviewedCLI(
         ['store', 'setup', 'fresh-context', '--path', path.join(tempDir, 'fresh-context'), '--no-init-git'],
         { cwd: appRepo, env }
       );
@@ -1079,7 +1079,7 @@ operations:
         id: 'register-context',
       });
 
-      const result = await runCLI(['store', 'register', registerRoot], {
+      const result = await runReviewedCLI(['store', 'register', registerRoot], {
         cwd: appRepo,
         env,
       });

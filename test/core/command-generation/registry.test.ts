@@ -28,34 +28,9 @@ describe('command-generation/registry', () => {
       expect(adapter?.toolId).toBe('devin');
     });
 
-    it('should return Junie adapter for "junie"', () => {
-      const adapter = CommandAdapterRegistry.get('junie');
-      expect(adapter).toBeDefined();
-      expect(adapter?.toolId).toBe('junie');
-    });
-
-    it('should return AtomCode adapter for "atomcode"', () => {
-      const adapter = CommandAdapterRegistry.get('atomcode');
-      expect(adapter).toBeDefined();
-      expect(adapter?.toolId).toBe('atomcode');
-    });
-
-    it('should return ZCode adapter for "zcode"', () => {
-      const adapter = CommandAdapterRegistry.get('zcode');
-      expect(adapter).toBeDefined();
-      expect(adapter?.toolId).toBe('zcode');
-    });
-
     it('should return undefined for unregistered tool', () => {
       const adapter = CommandAdapterRegistry.get('unknown-tool');
       expect(adapter).toBeUndefined();
-    });
-
-    it('should return undefined for skills-only tools without adapters', () => {
-      expect(CommandAdapterRegistry.get('codeartsagent')).toBeUndefined();
-      expect(CommandAdapterRegistry.get('dsh')).toBeUndefined();
-      expect(CommandAdapterRegistry.get('hermes')).toBeUndefined();
-      expect(CommandAdapterRegistry.get('kimi')).toBeUndefined();
     });
 
     it('should return undefined for Codex', () => {
@@ -85,35 +60,13 @@ describe('command-generation/registry', () => {
       expect(toolIds).toContain('devin');
       expect(toolIds).not.toContain('codex');
     });
-
-    it('should include the ZCode adapter', () => {
-      const adapters = CommandAdapterRegistry.getAll();
-      const toolIds = adapters.map((a) => a.toolId);
-
-      expect(toolIds).toContain('zcode');
-      expect(toolIds).toContain('atomcode');
-    });
   });
 
   describe('has', () => {
-    it('should return true for registered tools', () => {
-      expect(CommandAdapterRegistry.has('claude')).toBe(true);
-      expect(CommandAdapterRegistry.has('cursor')).toBe(true);
-      expect(CommandAdapterRegistry.has('devin')).toBe(true);
-      expect(CommandAdapterRegistry.has('devin')).toBe(true);
-      expect(CommandAdapterRegistry.has('junie')).toBe(true);
-      expect(CommandAdapterRegistry.has('zcode')).toBe(true);
-      expect(CommandAdapterRegistry.has('atomcode')).toBe(true);
-      expect(CommandAdapterRegistry.has('codex')).toBe(false);
-    });
 
     it('should return false for unregistered tools', () => {
       expect(CommandAdapterRegistry.has('unknown')).toBe(false);
       expect(CommandAdapterRegistry.has('')).toBe(false);
-    });
-
-    it('should return false for CodeArts without a command adapter', () => {
-      expect(CommandAdapterRegistry.has('codeartsagent')).toBe(false);
     });
   });
 
@@ -126,31 +79,6 @@ describe('command-generation/registry', () => {
       expect(claudeAdapter?.getFilePath('test')).toContain('.claude');
       expect(cursorAdapter?.getFilePath('test')).toContain('.cursor');
       expect(devinAdapter?.getFilePath('test')).toContain('.devin');
-    });
-
-    it('registered adapters should have working formatFile', () => {
-      const content = {
-        id: 'test',
-        name: 'Test',
-        description: 'Test desc',
-        category: 'Test',
-        tags: ['tag1'],
-        body: 'Body content',
-      };
-
-      // Tools that don't use YAML frontmatter (markdown headers or TOML or plain)
-      const noYamlFrontmatter = ['cline', 'command-code', 'kilocode', 'roocode', 'gemini', 'easycode'];
-
-      const adapters = CommandAdapterRegistry.getAll();
-      for (const adapter of adapters) {
-        const output = adapter.formatFile(content);
-        // All adapters should include the body content
-        expect(output).toContain('Body content');
-        // Only check for YAML frontmatter for tools that use it
-        if (!noYamlFrontmatter.includes(adapter.toolId)) {
-          expect(output).toContain('---');
-        }
-      }
     });
   });
 

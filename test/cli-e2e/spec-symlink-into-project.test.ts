@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { tmpdir } from 'os';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 /**
  * The layout reported in #2100: a project keeps its main specs beside the
@@ -90,28 +90,28 @@ describeWithSymlinks('a main spec that is a symlink into the project (#2100)', (
     });
 
     it('lists the capability', async () => {
-      const result = await runCLI(['list', '--specs'], { cwd: projectDir });
+      const result = await runReviewedCLI(['list', '--specs'], { cwd: projectDir });
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('login');
     });
 
     it('shows the linked file as the spec', async () => {
-      const result = await runCLI(['show', 'login', '--type', 'spec'], { cwd: projectDir });
+      const result = await runReviewedCLI(['show', 'login', '--type', 'spec'], { cwd: projectDir });
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Users sign in with their credentials');
     });
 
     it('validates the capability, by id and as part of --specs', async () => {
-      const byId = await runCLI(['validate', 'login', '--type', 'spec'], { cwd: projectDir });
+      const byId = await runReviewedCLI(['validate', 'login', '--type', 'spec'], { cwd: projectDir });
       expect(byId.exitCode).toBe(0);
 
-      const all = await runCLI(['validate', '--specs'], { cwd: projectDir });
+      const all = await runReviewedCLI(['validate', '--specs'], { cwd: projectDir });
       expect(all.exitCode).toBe(0);
       expect(`${all.stdout}${all.stderr}`).not.toContain('outside the allowed directory');
     });
 
     it('archives through the link, leaving the link and the docs file in place', async () => {
-      const result = await runCLI(['archive', 'add-mfa', '--yes'], { cwd: projectDir });
+      const result = await runReviewedCLI(['archive', 'add-mfa', '--yes'], { cwd: projectDir });
       expect(result.exitCode).toBe(0);
 
       // The merge landed in the file the docs own, and kept what was there.
@@ -138,13 +138,13 @@ describeWithSymlinks('a main spec that is a symlink into the project (#2100)', (
       ['validate by id', ['validate', 'login', '--type', 'spec']],
       ['validate --specs', ['validate', '--specs']],
     ])('refuses it in %s', async (_label, args) => {
-      const result = await runCLI(args, { cwd: projectDir });
+      const result = await runReviewedCLI(args, { cwd: projectDir });
       expect(result.exitCode).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).toContain('outside the allowed directory');
     });
 
     it('refuses to archive, and writes nothing', async () => {
-      const result = await runCLI(['archive', 'add-mfa', '--yes'], { cwd: projectDir });
+      const result = await runReviewedCLI(['archive', 'add-mfa', '--yes'], { cwd: projectDir });
       expect(result.exitCode).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).toContain('outside the allowed directory');
       await expect(fs.readFile(outside, 'utf-8')).resolves.toBe(MAIN_SPEC);

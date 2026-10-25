@@ -8,6 +8,10 @@ artifacts:
     template: proposal.md
     instruction: |
       Create the proposal document that establishes WHY this change is needed.
+      Write for the people affected: identify their problem, desired outcome,
+      scope, and business impact. Describe capabilities and observable changes.
+      Keep internal function names, class names, and implementation steps in
+      design.md or tasks.md unless those interfaces are the requested subject.
 
       Sections:
       - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
@@ -15,7 +19,7 @@ artifacts:
       - **Capabilities**: Identify which specs will be created or modified:
         - **New Capabilities**: List capabilities being introduced. Each becomes a new `specs/<capability-path>/spec.md`. Name each capability for a durable system behavior (for example, `user-auth`), not the work in this change (for example, `add-login-endpoint`). Choose a cohesive boundary that can own related requirements as the system evolves; avoid broad catch-all capabilities. Use kebab-case for path segments you introduce (e.g., `user-auth` or `identity/user-auth`) and follow the project's existing spec organization.
         - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Only include if spec-level behavior changes (not just implementation details). Each needs a delta spec file. Use the exact existing path under `openspec/specs/`. Leave empty if no requirement changes.
-      - **Impact**: Affected code, APIs, dependencies, or systems.
+      - **Impact**: Affected people, workflows, external contracts, and rollout or compatibility concerns. Put implementation inventories in design or tasks.
 
       IMPORTANT: The Capabilities section is critical. It creates the contract between
       proposal and specs phases. Research existing specs before filling this in:
@@ -46,12 +50,13 @@ artifacts:
 
       This is the foundation - specs, design, and tasks all build on this.
     requires: []
-
   - id: specs
-    generates: "specs/**/*.md"
+    generates: specs/**/*.md
     description: Detailed specifications for the change
     template: spec.md
     instruction: |
+      Describe observable behavior, business rules, acceptance criteria, and failure cases in plain language. Keep internal function/class names and implementation mechanics in design/tasks unless those interfaces are the requested subject.
+
       Create specification files that define WHAT the system should do.
 
       A spec is a behavior contract, not an implementation plan.
@@ -159,7 +164,6 @@ artifacts:
       Specs should be testable - each scenario is a potential test case.
     requires:
       - proposal
-
   - id: design
     generates: design.md
     description: Technical design document with implementation details
@@ -194,7 +198,6 @@ artifacts:
       Good design docs explain the "why" behind technical decisions.
     requires:
       - proposal
-
   - id: tasks
     generates: tasks.md
     description: Implementation checklist with trackable tasks
@@ -263,9 +266,9 @@ artifacts:
     requires:
       - specs
       - design
-
 apply:
-  requires: [tasks]
+  requires:
+    - tasks
   tracks: tasks.md
   instruction: |
     Read context files, work through pending tasks, mark complete as you go.

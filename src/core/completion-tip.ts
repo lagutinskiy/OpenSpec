@@ -10,7 +10,7 @@
  * output.
  *
  * The tip is suppressed when:
- * - CI is set (any value npm/telemetry would treat as CI)
+ * - CI is set (an explicit enabled value)
  * - OPENSPEC_NO_COMPLETIONS=1
  * - completions are already installed, or the shell is one the installer would
  *   reject
@@ -37,7 +37,7 @@ export interface CompletionTipOptions {
 
 function isSuppressedByEnv(): boolean {
   // isCiEnvironment, not a CI==='true' string check: providers set CI to "True",
-  // "yes", "on", and the tip should be as quiet in those builds as telemetry is.
+  // "yes", "on", and the tip should be as quiet in those builds as other CLI hints are.
   return isCiEnvironment() || process.env.OPENSPEC_NO_COMPLETIONS === '1';
 }
 
@@ -107,7 +107,7 @@ export function readRawConfig(): Record<string, unknown> | null {
  *
  * Deciding whether to show the tip costs a `ps` spawn and a stat, and a sibling
  * `openspec` process can write the same file in that window — on a first run
- * that is exactly when telemetry mints `anonymousId`. Re-reading here keeps the
+ * configuration can change concurrently. Re-reading here keeps the
  * write down to this one key, and the rename keeps a reader from ever seeing a
  * half-written config.
  */

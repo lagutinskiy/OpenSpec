@@ -86,7 +86,7 @@ const TEST_FILE = join(repoRoot, 'test/core/templates/skill-templates-parity.tes
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 // The generated-content hashes are keyed by skill directory. Read that mapping
-// from the same production helper the skills.sh generator uses, so a new
+// from the same production helper used by skill generation, so a new
 // workflow never needs a second list kept in sync here.
 const PARITY_BASELINE = 'PARITY-BASELINE';
 const contentByDir = new Map(

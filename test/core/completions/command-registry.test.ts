@@ -171,6 +171,7 @@ describe('command completion registry', () => {
       'instructions',
       'list',
       'new change',
+      'review',
       'schemas',
       'show',
       'status',
@@ -221,7 +222,7 @@ describe('command completion registry', () => {
 
   it('advertises --store on the supported root-selection commands', () => {
     for (const name of [
-      'list',
+      'list', 'review',
       'show',
       'validate',
       'archive',

@@ -83,6 +83,11 @@ ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
 
+After step 5 completes, refresh independent requirements review with
+openspec review requirements --change "<name>" --main-harness <id> --json.
+This handoff does not authorize implementation or change the confirmation rule.
+
+
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 ${CONTINUE_SCOPE_NOTE}
@@ -182,6 +187,11 @@ export function getOpsxUpdateCommandTemplate(): CommandTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+After step 5 completes, refresh independent requirements review with
+openspec review requirements --change "<name>" --main-harness <id> --json.
+This handoff does not authorize implementation or change the confirmation rule.
+
 
 **Input**: Optionally specify a change name after \`/opsx:update\` (e.g., \`/opsx:update add-auth\`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from 'fs';
 import path from 'path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { ReviewPolicySchema } from './review/types.js';
 
 import { getStoreMetadataPath } from './store/foundation.js';
 
@@ -32,6 +33,7 @@ const OperationConfigSchema = z.object({
  * - Consistent with other OpenSpec schemas
  */
 export const ProjectConfigSchema = z.object({
+  review: ReviewPolicySchema.optional(),
   // Required: which schema to use (e.g., "spec-driven", or project-local schema name)
   schema: z
     .string()
@@ -76,15 +78,7 @@ export const ProjectConfigSchema = z.object({
     .optional()
     .describe('Store id used as the OpenSpec root when no local planning shape exists'),
 
-  // Optional: GitHub Copilot integration preferences. `cloudAgent` is the
-  // opt-in for generating the Copilot cloud coding-agent files (a GitHub
-  // Actions workflow + agent file); absent means "not yet decided".
-  githubCopilot: z
-    .object({
-      cloudAgent: z.boolean().optional(),
-    })
-    .optional()
-    .describe('GitHub Copilot integration preferences'),
+
 });
 
 /** Normalized in-memory shape of a referenced store declaration. */
@@ -401,6 +395,12 @@ export function readProjectConfig(projectRoot: string): ProjectConfig | null {
       }
     }
 
+    if (raw.review !== undefined) {
+      const review = ReviewPolicySchema.safeParse(raw.review);
+      if (!review.success) throw new Error('Invalid review configuration: ' + review.error.message);
+      config.review = review.data;
+    }
+
     const operations = parseOperations(raw.operations);
     if (operations) {
       config.operations = operations;
@@ -421,24 +421,6 @@ export function readProjectConfig(projectRoot: string): ProjectConfig | null {
         console.warn(
           `Warning: ignoring invalid store: field in ${configPathForWarnings(projectRoot)} (must be a single store id string).`
         );
-      }
-    }
-
-    // Parse githubCopilot preferences (only cloudAgent is recognized today).
-    if (raw.githubCopilot !== undefined) {
-      if (
-        typeof raw.githubCopilot === 'object' &&
-        raw.githubCopilot !== null &&
-        !Array.isArray(raw.githubCopilot)
-      ) {
-        const cloudAgent = (raw.githubCopilot as Record<string, unknown>).cloudAgent;
-        if (typeof cloudAgent === 'boolean') {
-          config.githubCopilot = { cloudAgent };
-        } else if (cloudAgent !== undefined) {
-          console.warn(`Invalid 'githubCopilot.cloudAgent' field in config (must be a boolean)`);
-        }
-      } else {
-        console.warn(`Invalid 'githubCopilot' field in config (must be an object)`);
       }
     }
 

@@ -650,7 +650,7 @@ export class Validator {
    * (`RUNNER~1`) against its expanded form turned `tasks.md` into a
    * `../../../..`-prefixed absolute path in the report, and a symlinked project
    * directory does the same elsewhere. Canonicalizing recovers the real
-   * relationship. The Windows CI job is the regression guard — the mismatch
+   * relationship. The Windows local check is the regression guard — the mismatch
    * cannot be staged on POSIX, where the spawned CLI's `process.cwd()` is
    * already physical.
    *

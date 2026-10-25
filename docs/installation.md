@@ -1,257 +1,116 @@
-# Installation
+# Install in your projects
 
-## Install
+Requires Node.js 20.19.0 or newer. Install the reviewer CLI separately and authenticate it.
 
-OpenSpec is a single file. It needs no Node.js or anything else (on Alpine Linux, first run `apk add libstdc++ libgcc`).
+## Clone and build the private repository
 
-macOS and Linux:
+Clone the repository using your private Git URL, then build a local package:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/binary/install.sh | sh
+```sh
+git clone "YOUR_PRIVATE_REPOSITORY_URL" ~/src/openspec-private
+cd ~/src/openspec-private
+npx --yes pnpm@10.34.5 install --frozen-lockfile
+npm run pack:local
 ```
 
-Windows (PowerShell):
+If pnpm 10.34.5 is already installed, use `pnpm install --frozen-lockfile` for the first command.
 
-```powershell
-irm https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/binary/install.ps1 | iex
+## Install the private package
+
+Install the tarball produced in `artifacts/`:
+
+```sh
+npm install --global ./artifacts/private-openspec-1.15.0.tgz
 ```
 
-The installer picks the newest release whose files are all attached and the right file for your machine, checks it against the release's `SHA256SUMS`, and installs it to `~/.local/bin` (Windows: `%LOCALAPPDATA%\Programs\openspec`, added to your user `PATH`). Set `OPENSPEC_INSTALL_DIR` to choose another folder, or `OPENSPEC_VERSION=v1.15.0` to pin a release. Prefer npm or another package manager? See [Package Managers](#package-managers).
+This provides the `openspec` command. Keep your private fork separate from an
+upstream global OpenSpec installation; both use the same command name.
 
-To install by hand, download your platform's file from the [latest release](https://github.com/Fission-AI/OpenSpec/releases/latest), rename it to `openspec` (`openspec.exe` on Windows), make it executable on macOS and Linux (`chmod +x openspec`), and put it on your `PATH`:
+To use the CLI directly from the clone without a global install, run
+`node /path/to/openspec-private/bin/openspec.js <command>`.
 
-| Platform | File |
-|---|---|
-| macOS 13+ (Apple Silicon / Intel) | `openspec-darwin-arm64` / `openspec-darwin-x64` |
-| Linux (glibc 2.17+) | `openspec-linux-x64` / `openspec-linux-arm64` |
-| Alpine 3.17+ (needs `apk add libstdc++ libgcc`) | `openspec-linux-x64-musl` / `openspec-linux-arm64-musl` |
-| Windows 10+ | `openspec-windows-x64.exe` / `openspec-windows-arm64.exe` |
+## Install skills for every project on this machine
 
-On macOS, a file downloaded with a browser is blocked until you run `xattr -d com.apple.quarantine openspec`; the install script avoids this. On Windows, SmartScreen may warn the first time you run it from Explorer.
+Install the workflow skills into the global user directories supported by the
+selected harnesses:
 
-## Install with your AI assistant
-
-Rather not do this by hand? Paste the prompt below into any coding assistant that can run shell commands — Claude Code, Codex, Cursor, Gemini CLI, Copilot, and the rest of the [supported tools](supported-tools.md). It installs the CLI, initializes this project, and reports back what actually happened.
-
-The manual steps below are the source of truth — the prompt just runs them for you. If your assistant stops and hands something back, that's by design: it asks before anything privileged and never edits your shell startup files. Finish those bits yourself with [Install](#install) and [Troubleshooting](troubleshooting.md).
-
-```text
-Install OpenSpec in this project and set it up for me. Follow these steps in
-order, and stop where a step tells you to stop.
-
-1. INSTALL. Run `openspec --version` first. If it prints a version, OpenSpec is
-   already installed: run `openspec version --check`, which prints the update
-   command for how it was installed when it can tell (otherwise update it the
-   way it was installed, e.g. `brew upgrade openspec`), offer to run that, and
-   skip to step 3. If I installed it with a package manager, mention once that
-   `openspec install` switches to the standalone install, but only switch if I
-   ask; never switch it to a different install method on your own. Otherwise install
-   the standalone OpenSpec binary, which needs no Node.js. Show me the command
-   for my OS and run it only once I confirm, then skip to step 3:
-     macOS / Linux:        curl -fsSL https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/binary/install.sh | sh
-     Windows (PowerShell): irm https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/binary/install.ps1 | iex
-   If I'd rather use a package manager, or the installer fails, go to step 2.
-
-2. PACKAGE MANAGER (only if step 1 did not install it). Run `node --version`:
-   this needs Node.js 20.19.0 or higher. If Node is missing or older, say so and
-   stop — don't install Node, switch versions, or reconfigure my version
-   manager for me. Otherwise use whichever package manager is already on my
-   PATH, preferring npm:
-     npm install -g @fission-ai/openspec@latest
-     pnpm add -g @fission-ai/openspec@latest
-     bun add -g @fission-ai/openspec@latest
-     yarn global add @fission-ai/openspec@latest   (Yarn 1.x only)
-   Don't pick based on this project's lockfile — a global install has nothing to
-   do with how this repo's own dependencies are installed. If none of those four
-   is available, stop and tell me — don't improvise an install. (If I'm on Nix,
-   point me at the Nix section of the OpenSpec installation docs instead.)
-   Show me the exact command and let me confirm before you run it; this installs
-   software outside the project, and I may want a different package manager to
-   own it.
-   Stop and ask me again if the install needs sudo or admin rights, fails with a
-   permissions error, or reports that its global bin directory is missing or
-   unconfigured. Never edit my shell startup files (.bashrc, .zshrc, .profile,
-   fish, PowerShell profile), and never run a setup command that edits them for
-   me — show me the change and let me make it.
-
-3. PATH. Run `openspec --version`. If the command isn't found, it may just be
-   missing from this shell: tell me where it was installed (the standalone
-   installer prints the folder, ~/.local/bin by default; a package manager has
-   its own global bin folder) and how to add that folder to PATH for my shell
-   and OS, then stop until I confirm. On Windows the standalone installer adds
-   it for me; a new terminal picks it up. If it prints an older version than the one the install just
-   reported, an earlier copy is shadowing it on PATH — tell me both versions
-   instead of continuing. If I use a version manager, say so rather than editing
-   PATH around it: with nvm or fnm the CLI is tied to the Node version that was
-   active when you installed it, and with asdf or volta a shim may need
-   regenerating.
-
-4. INITIALIZE. Ask me which AI coding tool or tools I use and map each to an id
-   from `openspec init --help` (Copilot is `github-copilot`, Zoo Code is
-   `roocode`). `--tools` takes a comma-separated list, so name all of them.
-   `openspec init --tools <ids>` deletes leftovers from older OpenSpec versions
-   automatically, without asking — including `opsx-*.md` prompt files in my home
-   directory (Codex keeps them in ~/.codex/prompts). Before you run it, look for
-   those: `.../commands/openspec/` folders, OpenSpec marker blocks in files like
-   CLAUDE.md or AGENTS.md, and home-directory `opsx-*.md` prompts. List whatever
-   you find and wait for my go-ahead; if you find nothing, say so and carry on
-   without asking. An existing `openspec/` folder is not a problem — init
-   refreshes it and leaves my specs and changes alone.
-   Confirm I'm in the right folder too: init creates `openspec/` wherever it
-   runs, including inside a monorepo package.
-   Then run: openspec init --tools <ids>
-
-5. REPORT. Don't assume what should exist — tell me what init actually printed:
-   how many skills and/or commands it created and where, the config file line,
-   any "Setup required" note, and what to restart or reload. Some tools are
-   skills-only and correctly create zero command files, so missing commands is
-   not a failure on its own. If init said nothing was generated, relay the fix
-   it suggested instead of retrying. Finish by telling me how to invoke OpenSpec
-   in my tool, and take the exact spelling from the files init created rather
-   than from its summary line: the punctuation differs per tool (/opsx:propose
-   in some, /opsx-propose in others, @opsx-propose in Amazon Q), and tools that
-   get skills instead of commands are invoked by skill name (/openspec-propose,
-   or $openspec-propose in Codex, or /skill:openspec-propose in Kimi Code).
+```sh
+openspec skills install --global
 ```
 
-Nothing in the prompt is vendor-specific: it's plain instructions plus the same commands documented on this page. It works on macOS, Linux, and Windows, and it deliberately stops rather than improvising when a step needs your permission. Your assistant does need to be able to run shell commands — a few IDE integrations can't.
+This installs skills for all nine supported harnesses. To select only some,
+pass a comma-separated list:
 
-## Package Managers
-
-Installing with a package manager needs **Node.js 20.19.0 or higher** (check with `node --version`).
-
-### npm
-
-```bash
-npm install -g @fission-ai/openspec@latest
+```sh
+openspec skills install --global --tools codex,claude
 ```
 
-### pnpm
+The shared destination for Codex, Pi, Cursor, Warp, and DSH is
+`~/.agents/skills`. Claude Code uses `~/.claude/skills`; Devin uses
+`~/.config/devin/skills` (Windows: `%APPDATA%\devin\skills`); OpenCode uses
+`~/.config/opencode/skills` (Windows: `%USERPROFILE%\.config\opencode\skills`);
+and Grok uses `~/.grok/skills`. `XDG_CONFIG_HOME` overrides the config-based
+paths when set to an absolute path; relative values are ignored. `--json`
+emits structured skill entries with separate `directory` and `skill` fields,
+and path-only entries where no skill name applies, so Windows drive letters
+remain unambiguous.
 
-```bash
-pnpm add -g @fission-ai/openspec@latest
+The global command installs skills only. It does not create an `openspec/`
+planning directory or install project commands or configuration. After pulling
+and installing a newer private package, run the same command again to refresh
+the installed skills. Open harness sessions may need to be restarted to load
+the updated files.
+
+Custom skills are preserved. If an OpenSpec skill name already exists without
+installer ownership metadata, the command leaves it unchanged, reports the
+conflict, and exits with a nonzero status. To retry, move or rename the
+conflicting `openspec-*` directory from the destination path shown in the
+message, preserving any content you need, then rerun the command.
+
+If you edit a skill that OpenSpec installed, later runs detect the changed
+content, preserve it, report a conflict, and continue refreshing the other
+skills. To accept a newer OpenSpec copy, save your edits elsewhere, remove the
+changed skill directory, and rerun installation. Missing installer-owned skills
+are recreated automatically. If an interrupted install leaves
+`<skills directory>/.openspec/install.lock`, remove that stale lock and rerun.
+First confirm that the PID recorded in the lock is no longer running; do not
+remove a lock held by an active install. If a skill came from an older install
+that predates content hashes, the first refresh preserves it and reports a
+conflict when the generated content differs. Save or remove that skill before
+retrying to accept the generated version.
+
+## Configure a project
+
+In each target project:
+
+```sh
+openspec init --tools codex,claude
 ```
 
-### yarn
+Choose any comma-separated subset of `codex`, `claude`, `pi`, `cursor`, `devin`,
+`opencode`, `warp`, `dsh`, and `grok`. `--tools all` selects all nine.
 
-```bash
-yarn global add @fission-ai/openspec@latest
+Skills go into the selected harness directories. Claude Code, Pi, Cursor, Devin,
+and OpenCode also receive commands when the delivery setting includes commands.
+Codex uses `.agents/skills/` and `$openspec-<skill>` invocations.
+
+## Refresh project skills
+
+There are no automatic version checks or self-updaters. To update the installed
+CLI, pull the private repository, rebuild the tarball, and install it again.
+Then refresh a project's generated skills and commands:
+
+```sh
+openspec update
 ```
 
-Yarn 2 and later (Berry) removed the `global` command. On those versions, install OpenSpec with npm, pnpm, or bun instead — a global CLI doesn't need to share your project's package manager.
+Review settings and usage are in [Workflow](workflow.md). Custom harness files are preserved. Known OpenSpec-managed legacy files may be reconciled during setup or refresh. Remove unwanted old installations yourself.
 
-### deno
+## Develop this fork
 
-Deno sometimes has issues parsing the @latest tag, but we can specify a version while installing initially.
-If that happens, you could try to change the @latest tag with the version, something like `@^1.3.1`
-
-```bash
-deno install --global \
-  --allow-read --allow-write --allow-env --allow-sys=cpus,homedir --allow-net=edge.openspec.dev \
-  npm:@fission-ai/openspec@latest
-# or
-deno install --global \
-  --allow-read --allow-write --allow-env --allow-sys=cpus,homedir --allow-net=edge.openspec.dev \
-  npm:@fission-ai/openspec@^1.3.1
+```sh
+npm run check
 ```
 
-Note: If your subcommands launch external tools, like config edit, feedback, or workspace open, you may need a scoped --allow-run=<program>.
-
-### bun
-
-Bun can install OpenSpec globally, but OpenSpec currently runs on Node.js.
-You still need Node.js 20.19.0 or higher available on `PATH`.
-
-```bash
-bun add -g @fission-ai/openspec@latest
-```
-
-## Nix
-
-Run OpenSpec directly without installation:
-
-```bash
-nix run github:Fission-AI/OpenSpec -- init
-```
-
-Or install to your profile:
-
-```bash
-nix profile install github:Fission-AI/OpenSpec
-```
-
-Or add to your development environment in `flake.nix`:
-
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    openspec.url = "github:Fission-AI/OpenSpec";
-  };
-
-  outputs = { nixpkgs, openspec, ... }: {
-    devShells.x86_64-linux.default = nixpkgs.legacyPackages.x86_64-linux.mkShell {
-      buildInputs = [ openspec.packages.x86_64-linux.default ];
-    };
-  };
-}
-```
-
-## Verify Installation
-
-```bash
-openspec --version
-```
-
-## Switch from npm to the standalone install
-
-Your settings and projects carry over; only the program changes.
-
-1. Run `openspec install`. It installs the standalone copy and prints the command that removes your old one.
-2. Run that command, for example `npm uninstall -g @fission-ai/openspec` (Homebrew: `brew uninstall openspec`). Until then the old copy keeps running first on your PATH.
-3. In a new terminal, run `openspec version`. It should print `OpenSpec <version> (standalone)`. If it names a package manager, another copy is still on your PATH: `which -a openspec` (Windows: `where.exe openspec`) lists them.
-
-## Updating
-
-Upgrade the CLI by running the [install command](#install) again (with a package manager: `npm install -g @fission-ai/openspec@latest` or its pnpm/yarn/bun equivalent). Then refresh each project's generated files:
-
-```bash
-openspec update   # run inside each project
-```
-
-`openspec update` regenerates the skill and command files for the tools you've configured, so your slash commands stay current with the installed version. It also checks whether a newer CLI has been published and offers to upgrade, since upgrading is what makes new workflows available in the first place — see [CLI Reference](cli.md#openspec-update).
-
-## Uninstalling
-
-There's no `openspec uninstall` command, because OpenSpec is just one program plus some files in your project. Removing it is a few manual steps, and nothing here touches your source code.
-
-**1. Remove the CLI.** Delete the file the installer put in place: `~/.local/bin/openspec`, or on Windows `%LOCALAPPDATA%\Programs\openspec\openspec.exe` (and that folder from your user `PATH`). If you installed with a package manager:
-
-```bash
-npm uninstall -g @fission-ai/openspec   # or: pnpm rm -g / yarn global remove / bun rm -g
-```
-
-The standalone binary also keeps, when that directory is writable, a copy of its built-in schemas under your OpenSpec data directory (`~/.local/share/openspec/binary-schemas` on macOS and Linux, `%LOCALAPPDATA%\openspec\binary-schemas` on Windows), which you can delete too.
-
-**2. Remove OpenSpec from a project (optional).** Delete the `openspec/` directory if you no longer want its specs and changes:
-
-```bash
-rm -rf openspec/
-```
-
-Think before you do this: `openspec/specs/` and `openspec/changes/archive/` are your record of how the system behaves and why it changed. If you might want that history, keep the folder (or keep it in git) even after uninstalling.
-
-**3. Remove generated AI tool files (optional).** OpenSpec writes skill and command files into per-tool directories like `.claude/skills/openspec-*/`, `.cursor/commands/opsx-*`, and so on. Delete the `openspec-*` skills and `opsx-*` commands for whichever tools you configured. The exact paths per tool are listed in [Supported Tools](supported-tools.md).
-
-If you also have OpenSpec marker blocks in files like `CLAUDE.md` or `AGENTS.md`, remove those blocks by hand; your own content in those files is yours to keep.
-
-## Next Steps
-
-After installing, initialize OpenSpec in your project:
-
-```bash
-cd your-project
-openspec init
-```
-
-See [Getting Started](getting-started.md) for a full walkthrough.
+The npm package contains `dist/`, `bin/`, and `schemas/`. Source tests, historical
+plans, and project planning data are not installed into target projects.

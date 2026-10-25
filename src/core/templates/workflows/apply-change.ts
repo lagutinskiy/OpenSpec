@@ -1,3 +1,4 @@
+import { REVIEW_GUIDANCE } from './review-change.js';
 /**
  * Skill Template Workflow Modules
  *
@@ -43,6 +44,8 @@ ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
 
+${REVIEW_GUIDANCE}
+
 **Input**: Optionally specify a change name (e.g., \`/opsx:apply add-auth\`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
@@ -84,7 +87,7 @@ ${PROJECT_ROOT_GUARD}
    - If \`state: "blocked"\`: show the message and pause implementation.
      - If \`missingArtifacts\` is non-empty: ${BLOCKED_STATE_HANDOFF}
      - Otherwise, follow the CLI instruction to create or repair the schema-configured tracking file from existing planning artifacts. Do not assume another artifact is ready or start implementation while blocked.
-   - If \`state: "all_done"\`: report that all tracked tasks are complete and suggest review or verification as appropriate before archiving
+   - If \`state: "all_done"\`: report that all tracked tasks are complete and run the required verification and independent code-review loop before archiving
    - Otherwise: proceed to implementation
 
    Treat \`context\` as a required prompt-level input. Read and consider it, and
@@ -122,6 +125,8 @@ ${PROJECT_ROOT_GUARD}
 
 6. **Implement tasks (loop until done or blocked)**
 
+   Before the first implementation edit, run the independent requirements review and ready-to-implement check described above. Do not proceed if blocked.
+
    For each pending task:
    - Show which task is being worked on
    - Make the code changes required
@@ -143,7 +148,7 @@ ${PROJECT_ROOT_GUARD}
    Display:
    - Tasks completed this session
    - Overall progress: "N/M tasks complete"
-   - If all done: report that tracked tasks are complete and suggest review or verification as appropriate before archiving
+   - If all done: report that tracked tasks are complete and run the required verification and independent code-review loop before archiving
    - If paused: explain why and wait for guidance
 
 **Output During Implementation**
@@ -163,7 +168,7 @@ Working on task 4/7: <task description>
 **Output On Completion**
 
 \`\`\`
-## Implementation Complete
+## Implementation Tasks Complete
 
 **Change:** <change-name>
 **Schema:** <schema-name>
@@ -174,7 +179,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tracked tasks are complete. Review or verify the change as appropriate
+All tracked tasks are complete. Run the required verification and independent code-review loop
 before archiving. ${ARCHIVE_HANDOFF}
 \`\`\`
 

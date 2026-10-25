@@ -33,7 +33,6 @@ export {
   type SkillCapableTool,
   toolSupportsSkills,
   getSkillCapableTools,
-  hasGlobalSkillTarget,
   resolveToolSkillsDir,
 } from './skill-paths.js';
 
