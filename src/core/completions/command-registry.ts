@@ -2,6 +2,27 @@ import { COMMON_FLAGS } from './shared-flags.js';
 import type { CommandDefinition } from './types.js';
 export const COMMAND_REGISTRY: CommandDefinition[] = [
   {
+    name: 'skills',
+    description: 'Install OpenSpec workflow skills',
+    flags: [],
+    subcommands: [
+      {
+        name: 'install',
+        description: 'Install or refresh OpenSpec skills for your user account',
+        flags: [
+          { name: 'global', description: 'Install skills for all projects on this machine' },
+          {
+            name: 'tools',
+            description: 'Harnesses: all or a comma-separated list of supported harness IDs',
+            takesValue: true,
+            values: ['all', 'codex', 'claude', 'pi', 'cursor', 'devin', 'opencode', 'warp', 'dsh', 'grok'],
+          },
+          { name: 'json', description: 'Output machine-readable JSON' },
+        ],
+      },
+    ],
+  },
+  {
     name: 'review',
     description: 'Independent review and lifecycle readiness',
     acceptsPositional: true,

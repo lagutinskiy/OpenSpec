@@ -25,14 +25,11 @@
   "scripts": {
     "lint": "eslint src/",
     "build": "node build.js",
-    "generate:skills": "node scripts/generate-skillssh.mjs",
     "regen:parity-hashes": "node scripts/regen-parity-hashes.mjs",
     "dev": "tsc --watch",
     "dev:cli": "pnpm build && node bin/openspec.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
     "prepare": "node build.js",
     "pack:local": "node scripts/pack-local.mjs",
     "check": "npm run build && npm run lint && npm test"
@@ -43,9 +40,7 @@
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/picomatch": "^4.0.3",
-    "@vitest/ui": "^4.1.12",
     "eslint": "^10.5.0",
-    "smol-toml": "^1.7.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.65.0",
     "vite": "^7.3.7",

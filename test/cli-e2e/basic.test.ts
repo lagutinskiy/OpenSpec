@@ -419,13 +419,8 @@ describe('openspec CLI e2e basics', () => {
       // Check that skills were created for multiple tools
       const claudeSkillPath = path.join(emptyProjectDir, '.claude/skills/openspec-explore/SKILL.md');
       const cursorSkillPath = path.join(emptyProjectDir, '.cursor/skills/openspec-explore/SKILL.md');
-      const minimaxSkillPath = path.join(
-        testHome,
-        '.minimax/skills/openspec-explore/SKILL.md'
-      );
       expect(await fileExists(claudeSkillPath)).toBe(true);
       expect(await fileExists(cursorSkillPath)).toBe(true);
-      expect(await fileExists(minimaxSkillPath)).toBe(false);
     }, 25000);
 
     it('initializes with --tools list option', async () => {

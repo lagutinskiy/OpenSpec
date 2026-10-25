@@ -15,7 +15,6 @@ import { CommandAdapterRegistry } from '../../../src/core/command-generation/reg
 import { generateCommand } from '../../../src/core/command-generation/generator.js';
 import { getCommandContents } from '../../../src/core/shared/skill-generation.js';
 import { parse as parseYaml } from 'yaml';
-import { parse as parseToml } from 'smol-toml';
 
 describe('command-generation/adapters', () => {
   const sampleContent: CommandContent = {

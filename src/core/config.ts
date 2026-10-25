@@ -32,10 +32,7 @@ export interface AIToolOption {
   successLabel?: string;
   skillsDir?: string; // e.g., '.claude' - /skills suffix per Agent Skills spec
   legacySkillsDirs?: string[]; // Former roots read for detection and migrated after replacement
-  globalSkillsDir?: string; // e.g., '.minimax' - /skills suffix, resolved from the user's home directory
   detectionPaths?: string[]; // Override skillsDir for auto-detection; any path existing triggers detection
-  searchAliases?: string[]; // Extra single-word terms the init tool picker matches; never displayed
-  setupNote?: string; // Manual setup required before the tool picks up generated files; shown after init/update
   requiresIdeRestart?: boolean; // True when slash commands are loaded by an IDE/editor process (a CLI picks them up immediately, so no restart hint — see #1067)
 }
 
@@ -50,30 +47,6 @@ export const AI_TOOLS: AIToolOption[] = [
   { name: 'Pi', value: 'pi', available: true, successLabel: 'Pi', skillsDir: '.pi' },
   { name: 'Warp', value: 'warp', available: true, successLabel: 'Warp', skillsDir: '.warp', detectionPaths: ['.warp', 'WARP.md'] },
 ];
-
-/**
- * The vendor-neutral target every assistant that is not listed above can use.
- * Named wherever a tool lookup comes up empty, so "my tool isn't here" is never
- * a dead end (#653).
- */
-export const UNIVERSAL_TOOL_ID = 'agents';
-
-/** The universal target's entry, or undefined if it was removed from AI_TOOLS. */
-export function getUniversalTool(): AIToolOption | undefined {
-  return AI_TOOLS.find((tool) => tool.value === UNIVERSAL_TOOL_ID);
-}
-
-/**
- * One-line pointer at the universal target for non-interactive errors, the
- * scripted counterpart of the picker's empty-search hint. Undefined when the
- * target is not among the tools on offer, so the hint never names a choice the
- * caller cannot make.
- */
-export function universalToolFallbackHint(offeredToolIds: string[]): string | undefined {
-  const universal = getUniversalTool();
-  if (!universal || !offeredToolIds.includes(universal.value)) return undefined;
-  return `Tool not listed? Use --tools ${universal.value}: the vendor-neutral target that writes ${universal.skillsDir}/skills/ for any assistant.`;
-}
 
 /**
  * Retired tool ids that still resolve, so a rebrand does not break scripted

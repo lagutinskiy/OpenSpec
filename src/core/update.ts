@@ -24,7 +24,6 @@ import {
   getCommandContents,
   generateSkillContent,
   getToolsWithSkillsDir,
-  hasGlobalSkillTarget,
   resolveToolSkillsDir,
   toolSupportsSkills,
   type ToolVersionStatus,
@@ -333,7 +332,7 @@ export class UpdateCommand {
         }
 
         const tool = AI_TOOLS.find((candidate) => candidate.value === s.toolId);
-        return !tool || !hasGlobalSkillTarget(tool);
+        return true;
       })
       .map((s) => s.toolId);
     const toolsNeedingConfigSync = getToolsNeedingProfileSync(
@@ -366,7 +365,6 @@ export class UpdateCommand {
       // Still check for new tool directories and extra workflows
       this.detectNewTools(resolvedProjectPath, configuredTools);
       this.displayProfileNotes(resolvedProjectPath, configuredTools, desiredWorkflows, profile, delivery);
-      this.displaySetupNotes(configuredTools);
       this.stopIfUpdateFailed(legacyUpgradeFailures);
       return;
     }
@@ -416,7 +414,7 @@ export class UpdateCommand {
 
       try {
         const skillsDir = resolveToolSkillsDir(resolvedProjectPath, tool);
-        const skillsRoot = hasGlobalSkillTarget(tool) ? skillsDir : resolvedProjectPath;
+        const skillsRoot = resolvedProjectPath;
         const shouldGenerateSkills = shouldGenerateSkillsForTool(tool.value, delivery);
         const shouldGenerateCommands = shouldGenerateCommandsForTool(tool.value, delivery);
         const writesSkills = !tool.skillsDir || sharedSkillWriters.has(tool.value);
@@ -453,8 +451,7 @@ export class UpdateCommand {
         // Delete skill directories if delivery is commands-only
         if (
           shouldRemoveSkillsForTool(tool.value, delivery) &&
-          writesSkills &&
-          !hasGlobalSkillTarget(tool)
+          writesSkills
         ) {
           removedSkillCount += await this.removeSkillDirs(skillsRoot, skillsDir, tool.value);
           // Persist the selected owner even when commands-only delivery leaves
@@ -609,7 +606,6 @@ export class UpdateCommand {
         }
         this.log();
       }
-      this.log(`Learn more: ${chalk.cyan('https://github.com/Fission-AI/OpenSpec')}`);
     }
 
     // 13. Detect new tool directories not currently configured
@@ -617,7 +613,6 @@ export class UpdateCommand {
 
     // 14. Display the profile notes
     this.displayProfileNotes(resolvedProjectPath, configuredAndNewTools, desiredWorkflows, profile, delivery);
-    this.displaySetupNotes(configuredAndNewTools);
 
     // 15. List affected tools
     if (updatedTools.length > 0) {
@@ -791,19 +786,6 @@ export class UpdateCommand {
     if (upToDate.length > 0) {
       const upToDateNames = upToDate.map((s) => s.toolId);
       this.log(chalk.dim(`Already up to date: ${upToDateNames.join(', ')}`));
-    }
-  }
-
-  /**
-   * Shows manual setup notes for configured tools that need extra
-   * configuration before they pick up generated files.
-   */
-  private displaySetupNotes(toolIds: string[]): void {
-    for (const toolId of toolIds) {
-      const tool = AI_TOOLS.find((t) => t.value === toolId);
-      if (tool?.setupNote) {
-        this.log(chalk.yellow(`Setup required for ${tool.name}: ${tool.setupNote}`));
-      }
     }
   }
 
@@ -1378,7 +1360,6 @@ export class UpdateCommand {
         return {
           name: tool?.name || toolId,
           value: toolId,
-          searchAliases: tool?.searchAliases,
           configured: false,
           preSelected: true, // Pre-select all detected legacy tools
         };
@@ -1423,7 +1404,7 @@ export class UpdateCommand {
 
       try {
         const skillsDir = resolveToolSkillsDir(projectPath, tool);
-        const skillsRoot = hasGlobalSkillTarget(tool) ? skillsDir : projectPath;
+        const skillsRoot = projectPath;
         const shouldGenerateSkills = shouldGenerateSkillsForTool(tool.value, delivery);
         const shouldGenerateCommands = shouldGenerateCommandsForTool(tool.value, delivery);
         const writesSkills = !tool.skillsDir || sharedSkillWriters.has(tool.value);

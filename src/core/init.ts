@@ -23,8 +23,6 @@ import { ANCHORED_OPENSPEC_DIRS, ensureDirectoryAnchor } from './openspec-root.j
 import { getSkillReferenceTransformer, getTransformerForTool, usesNaturalLanguageSkillReferences } from '../utils/command-references.js';
 import {
   AI_TOOLS,
-  getUniversalTool,
-  universalToolFallbackHint,
   OPENSPEC_DIR_NAME,
   AIToolOption,
   resolveToolIdAlias,
@@ -55,7 +53,6 @@ import {
   getSkillTemplates,
   getCommandContents,
   generateSkillContent,
-  hasGlobalSkillTarget,
   resolveToolSkillsDir,
   toolSupportsSkills,
   type ToolSkillStatus,
@@ -139,7 +136,6 @@ type ValidatedInitTool = {
   skillsDir?: string;
   skillsPath: string;
   skillsRoot: string;
-  isGlobalSkillTarget: boolean;
   wasConfigured: boolean;
   writesSkills: boolean;
 };
@@ -529,9 +525,8 @@ export class InitCommand {
       if (detectedToolIds.size > 0) {
         return [...detectedToolIds];
       }
-      const fallbackHint = universalToolFallbackHint(validTools);
       throw new Error(
-        `No tools detected and no --tools flag provided. Valid tools:\n  ${validTools.join('\n  ')}\n\nUse --tools all, --tools none, or --tools claude,cursor,...${fallbackHint ? `\n${fallbackHint}` : ''}`
+        `No tools detected and no --tools flag provided. Valid tools:\n  ${validTools.join('\n  ')}\n\nUse --tools all, --tools none, or a comma-separated list of tool IDs.`
       );
     }
 
@@ -555,7 +550,6 @@ export class InitCommand {
         return {
           name: tool?.name || toolId,
           value: toolId,
-          searchAliases: tool?.searchAliases,
           configured,
           detected: detected && !configured,
           preSelected: configured || (shouldPreselectDetected && detected && !configured),
@@ -589,19 +583,10 @@ export class InitCommand {
       console.log(`Detected tool directories: ${detectedOnlyNames.join(', ')} (${detectionLabel})`);
     }
 
-    // A search that matches nothing is where someone whose assistant is not on
-    // the list gives up (#653), so name the vendor-neutral entry right there.
-    const universalTool = getUniversalTool();
-    const universalHint =
-      universalTool && validTools.includes(universalTool.value)
-        ? `Tool not listed? Clear the search and pick "${universalTool.name}".`
-        : undefined;
-
     const selectedTools = await searchableMultiSelect({
       message: `Select tools to set up (${validTools.length} available)`,
       pageSize: 15,
       choices: sortedChoices,
-      emptyHint: universalHint,
       validate: (selected: string[]) => selected.length > 0 || 'Select at least one tool',
     });
 
@@ -661,9 +646,8 @@ export class InitCommand {
     );
 
     if (invalidTokens.length > 0) {
-      const fallbackHint = universalToolFallbackHint([...availableSet]);
       throw new Error(
-        `Invalid tool(s): ${invalidTokens.join(', ')}. Available values: ${availableList}${fallbackHint ? `\n${fallbackHint}` : ''}`
+        `Invalid tool(s): ${invalidTokens.join(', ')}. Available values: ${availableList}`
       );
     }
 
@@ -745,14 +729,12 @@ export class InitCommand {
       if (!toolSupportsSkills(tool)) continue;
       const preState = toolStates.get(tool.value);
       const skillsPath = resolveToolSkillsDir(projectPath, tool);
-      const isGlobalSkillTarget = hasGlobalSkillTarget(tool);
       validatedTools.push({
         value: tool.value,
         name: tool.name,
         skillsDir: tool.skillsDir,
         skillsPath,
-        skillsRoot: isGlobalSkillTarget ? skillsPath : projectPath,
-        isGlobalSkillTarget,
+        skillsRoot: projectPath,
         wasConfigured: preState?.configured ?? false,
         writesSkills: !tool.skillsDir || skillWriters.has(tool.value),
       });
@@ -879,8 +861,7 @@ export class InitCommand {
         }
         if (
           shouldRemoveSkillsForTool(tool.value, delivery) &&
-          tool.writesSkills &&
-          !tool.isGlobalSkillTarget
+          tool.writesSkills
         ) {
           removedSkillCount += await this.removeSkillDirs(tool.skillsRoot, tool.skillsPath);
           // Retain an explicit selection even when this delivery mode produces
@@ -1081,9 +1062,7 @@ export class InitCommand {
       const profile: Profile = (this.profileOverride as Profile) ?? globalConfig.profile ?? 'core';
       const delivery: Delivery = globalConfig.delivery ?? 'both';
       const workflows = getProfileWorkflows(profile, globalConfig.workflows);
-      const usesGlobalSkillTarget = successfulTools.some((tool) => tool.isGlobalSkillTarget);
-
-      if (!usesGlobalSkillTarget) {
+      {
         const toolDirs = [
           ...new Set(
             successfulTools
@@ -1108,39 +1087,6 @@ export class InitCommand {
         } else if (commandCount > 0) {
           console.log(`${commandCount} commands in ${toolDirs}/`);
         }
-      } else {
-        const skillTools = successfulTools.filter((tool) =>
-          shouldGenerateSkillsForTool(tool.value, delivery)
-        );
-        const skillCount = skillTools.length * getSkillTemplates(workflows).length;
-        if (skillCount > 0) {
-          const skillDirs = [...new Set(skillTools.map((tool) => tool.skillsPath))];
-          console.log(`${skillCount} skills in ${skillDirs.join(', ')}`);
-        }
-
-        const commandContents = getCommandContents(workflows);
-        const commandTools = successfulTools.filter((tool) =>
-          shouldGenerateCommandsForTool(tool.value, delivery)
-        );
-        const commandCount = commandTools.length * commandContents.length;
-        if (commandCount > 0) {
-          const commandDirs = [
-            ...new Set(
-              commandTools.flatMap((tool) => {
-                const adapter = CommandAdapterRegistry.get(tool.value);
-                if (!adapter) return [];
-                return commandContents.map((command) => {
-                  const commandPath = adapter.getFilePath(command.id);
-                  const absolutePath = path.isAbsolute(commandPath)
-                    ? commandPath
-                    : path.join(projectPath, commandPath);
-                  return path.dirname(absolutePath);
-                });
-              })
-            ),
-          ];
-          console.log(`${commandCount} commands in ${commandDirs.join(', ')}`);
-        }
       }
     }
 
@@ -1161,14 +1107,6 @@ export class InitCommand {
     }
     if (results.removedSkillCount > 0) {
       console.log(chalk.dim(`Removed: ${results.removedSkillCount} skill directories (delivery: commands)`));
-    }
-
-    // Show manual setup notes for tools that need extra configuration
-    for (const tool of successfulTools) {
-      const setupNote = AI_TOOLS.find((t) => t.value === tool.value)?.setupNote;
-      if (setupNote) {
-        console.log(chalk.yellow(`Setup required for ${tool.name}: ${setupNote}`));
-      }
     }
 
     // Config status

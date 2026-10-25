@@ -20,7 +20,7 @@ describe('profile handoff CLI regressions (#1734)', () => {
     env = {
       XDG_CONFIG_HOME: path.join(tempDir, 'config'),
       XDG_DATA_HOME: path.join(tempDir, 'data'),
-      USERPROFILE: path.join(tempDir, 'user-profile'), // Isolate global skill discovery (MiniMax).
+      USERPROFILE: path.join(tempDir, 'user-profile'), // Isolate per-test user configuration.
     };
   });
 

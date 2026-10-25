@@ -340,7 +340,7 @@ describe('getTransformerForTool', () => {
 // Regression for #1153/#1514: the apply skill template must author its
 // continue/apply/archive references as canonical /opsx:* tokens so the
 // generator can rewrite them per target. Bare "openspec-continue-change"
-// prose is invisible to the transformers, which left skills.sh, Codex, and
+// prose is invisible to the transformers, which left generic skill references, Codex, and
 // Kimi with dead text and no archive/input invocation after a naive revert.
 describe('apply skill template generates valid per-target invocations', () => {
   const skill = getApplyChangeSkillTemplate().instructions;
@@ -383,7 +383,7 @@ describe('apply skill template generates valid per-target invocations', () => {
   });
 
   const cases = [
-    { tool: 'default (skills.sh)', transform: transformToSkillReferences, cont: '/openspec-continue-change', arch: '/openspec-archive-change', apply: '/openspec-apply-change' },
+    { tool: 'generic skill', transform: transformToSkillReferences, cont: '/openspec-continue-change', arch: '/openspec-archive-change', apply: '/openspec-apply-change' },
     { tool: 'codex', transform: getSkillReferenceTransformer('codex'), cont: '$openspec-continue-change', arch: '$openspec-archive-change', apply: '$openspec-apply-change' },
     { tool: 'kimi', transform: getSkillReferenceTransformer('kimi'), cont: '/skill:openspec-continue-change', arch: '/skill:openspec-archive-change', apply: '/skill:openspec-apply-change' },
   ];

@@ -28,10 +28,8 @@ describe('pnpm workspace configuration', () => {
       [`esbuild@${esbuildVersions[0]}`]: true,
     });
     // Overrides are declared once, in pnpm-workspace.yaml. A `pnpm.overrides` block
-    // in package.json replaces that list rather than merging with it, and Dependabot
-    // rewrites plain-name entries there when it bumps the same package — so a mirrored
-    // copy silently displaces the pins that patch advisories. Keeping the whole `pnpm`
-    // block out of package.json denies Dependabot the block to write into.
+    // in package.json replaces that list rather than merging with it, so keeping the
+    // whole `pnpm` block here ensures the lockfile and workspace stay aligned.
     expect(packageJson.pnpm).toBeUndefined();
     expect(workspace.overrides).toEqual(lockfile.overrides);
   });

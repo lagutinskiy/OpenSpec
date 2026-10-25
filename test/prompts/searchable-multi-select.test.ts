@@ -142,16 +142,14 @@ const searchChoices = [
   { name: 'Claude Code', value: 'claude' },
   { name: 'Amazon Q Developer', value: 'amazon-q' },
   {
-    name: 'Other / Universal',
-    value: 'agents',
-    searchAliases: ['unlisted', 'generic', '.agents'],
+    name: 'OpenCode',
+    value: 'opencode',
   },
 ];
 
 async function setup(
   choices = testChoices,
   validate?: (selected: string[]) => boolean | string,
-  emptyHint?: string
 ) {
   resetState();
 
@@ -163,7 +161,6 @@ async function setup(
     message: 'Select tools',
     choices,
     validate,
-    emptyHint,
   });
 
   // The async chain in searchableMultiSelect involves:
@@ -289,45 +286,6 @@ describe('searchable-multi-select keybindings', () => {
   });
 
   describe('search filtering', () => {
-    it('should match a choice by an alias its name does not spell', async () => {
-      await setup(searchChoices);
-      typeSearch('unlisted');
-      expect(getSearchText()).toBe('unlisted');
-      expect(visibleNames()).toEqual(['Other / Universal']);
-    });
-
-    it('should match a second alias for the same choice', async () => {
-      await setup(searchChoices);
-      typeSearch('generic');
-      expect(visibleNames()).toEqual(['Other / Universal']);
-    });
-
-    it('should match an alias on a prefix, as it does for names', async () => {
-      await setup(searchChoices);
-      typeSearch('unlis');
-      expect(visibleNames()).toEqual(['Other / Universal']);
-    });
-
-    it('should match an alias regardless of case', async () => {
-      await setup(searchChoices);
-      if (!keypressHandler) throw new Error('No keypress handler registered');
-      keypressHandler({ sequence: 'UNLISTED' });
-      expect(visibleNames()).toEqual(['Other / Universal']);
-    });
-
-    it('should never render an alias as part of a choice', async () => {
-      await setup(searchChoices);
-      typeSearch('unlisted');
-      expect(renderOutput).not.toContain('generic');
-      expect(renderOutput).not.toContain('.agents');
-    });
-
-    it('should leave choices without aliases matching exactly as before', async () => {
-      await setup(searchChoices);
-      typeSearch('amazon');
-      expect(visibleNames()).toEqual(['Amazon Q Developer']);
-    });
-
     it('should still match on name and value', async () => {
       await setup(searchChoices);
       typeSearch('claude');
@@ -341,17 +299,6 @@ describe('searchable-multi-select keybindings', () => {
       expect(renderOutput).toContain('No matches');
     });
 
-    it('should point at the fallback choice when a search matches nothing', async () => {
-      await setup(searchChoices, undefined, 'Tool not listed? Pick "Other / Universal".');
-      typeSearch('nonesuch');
-      expect(renderOutput).toContain('Tool not listed?');
-    });
-
-    it('should not show the fallback hint while matches remain', async () => {
-      await setup(searchChoices, undefined, 'Tool not listed? Pick "Other / Universal".');
-      typeSearch('claude');
-      expect(renderOutput).not.toContain('Tool not listed?');
-    });
   });
 
   describe('search input', () => {
@@ -362,11 +309,11 @@ describe('searchable-multi-select keybindings', () => {
       expect(visibleNames()).toEqual(['Amazon Q Developer']);
     });
 
-    it('should accept a leading dot so directory-shaped terms filter', async () => {
+    it('should accept a leading dot in search text', async () => {
       await setup(searchChoices);
       typeSearch('.agents');
       expect(getSearchText()).toBe('.agents');
-      expect(visibleNames()).toEqual(['Other / Universal']);
+      expect(visibleNames()).toEqual([]);
     });
 
     it('should ignore control chords rather than typing them', async () => {

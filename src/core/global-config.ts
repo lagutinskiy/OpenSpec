@@ -117,8 +117,8 @@ export function getGlobalConfigPath(): string {
   return path.join(getGlobalConfigDir(), GLOBAL_CONFIG_FILE_NAME);
 }
 
-// Config paths already warned about. One command reads the config several
-// times (the update check and the command itself); warn once.
+// Config paths already warned about. A command can read the config several
+// times; warn once.
 const warnedInvalidJsonPaths = new Set<string>();
 
 /**

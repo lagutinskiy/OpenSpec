@@ -459,7 +459,6 @@ export function getConfiguredTools(projectRoot: string, view: FileView = DISK_VI
   return configured
     .filter(
       (tool) =>
-        tool.globalSkillsDir ||
         toolHasAnyConfiguredCommand(projectRoot, tool.value, view) ||
         (
           resolveCommandSurfaceCapability(tool.value) === 'adapter-backed' &&

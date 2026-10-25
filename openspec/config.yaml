@@ -26,7 +26,6 @@ rules:
     - Include HOW details only when the mechanism is part of the product contract
     - If we generate artifacts, specify deletion/modification by explicit list lookup, not pattern matching
   tasks:
-    - Add Windows CI verification as a task when changes involve file paths
     - Include cross-platform testing considerations
   design:
     - Document any platform-specific behavior or limitations

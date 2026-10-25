@@ -95,12 +95,12 @@ describe('available-tools', () => {
       expect(tools).toEqual([]);
     });
 
-    it('should return tools that support project-local or global skills', async () => {
+    it('should return tools that support project-local skills', async () => {
       await fs.mkdir(path.join(testDir, '.claude'), { recursive: true });
 
       const tools = getAvailableTools(testDir);
       expect(tools.map((t) => t.value)).toContain('claude');
-      expect(tools.every((tool) => tool.skillsDir || tool.globalSkillsDir)).toBe(true);
+      expect(tools.every((tool) => tool.skillsDir)).toBe(true);
     });
 
     it('should detect valid legacy Codex skills beside an escaped managed link', async () => {

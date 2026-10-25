@@ -46,8 +46,8 @@ import { OPENSPEC_CLI_ALLOWED_TOOLS } from './allowed-tools.js';
  *
  * `workflowFilter` is both the list of workflows to install and the set a
  * template may refer to, so resolving optional-workflow conditionals here —
- * the one place every generation path (init, update, migration, the skills.sh
- * distribution) already funnels through — keeps a reference to an uninstalled
+ * the one place every generation path (init, update and migration) already
+ * funnels through — keeps a reference to an uninstalled
  * workflow out of every generated file (#1734, umbrella #919).
  *
  * With no filter, every workflow is installed (that is what an unfiltered call

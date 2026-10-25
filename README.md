@@ -1,7 +1,7 @@
 # Private OpenSpec
 
 Spec-driven development skills for Codex, Claude Code, Pi, Cursor, Devin,
-OpenCode, Warp, DeepSeek Harness, and Grok Build.
+OpenCode, Warp, DSH, and Grok.
 
 - [Install in your projects](docs/installation.md)
 - [Development workflow and independent reviews](docs/workflow.md)

@@ -9,7 +9,6 @@ import type { GlobalConfig } from '../../src/core/global-config.js';
 import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
-import { parse as parseToml } from 'smol-toml';
 
 const { confirmMock, searchableMultiSelectMock, interactiveState } = vi.hoisted(() => ({
   confirmMock: vi.fn(),

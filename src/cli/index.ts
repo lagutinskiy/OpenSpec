@@ -13,6 +13,7 @@ import { registerStoreCommand } from './commands/store.js';
 import { registerDoctorCommand } from './commands/doctor.js';
 import { registerContextCommand } from './commands/context.js';
 import { registerWorksetCommand } from './commands/workset.js';
+import { registerSkillsCommand } from './commands/skills.js';
 import { DEFAULT_SCHEMA } from '../commands/workflow/default-schema.js';
 import type {
   StatusOptions,
@@ -176,7 +177,7 @@ program.hook('postAction', async (_thisCommand, actionCommand) => {
 });
 
 const availableToolIds = AI_TOOLS
-  .filter((tool) => tool.skillsDir || tool.globalSkillsDir)
+  .filter((tool) => tool.skillsDir)
   .map((tool) => tool.value);
 const toolAliasNote = Object.entries(TOOL_ID_ALIASES)
   .map(([retired, current]) => `${retired} (now ${current})`)
@@ -472,6 +473,7 @@ registerStoreCommand(program);
 registerDoctorCommand(program);
 registerContextCommand(program);
 registerWorksetCommand(program);
+registerSkillsCommand(program, version);
 
 // Top-level validate command
 program
