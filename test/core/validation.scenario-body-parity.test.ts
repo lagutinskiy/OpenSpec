@@ -5,7 +5,7 @@ import path from 'path';
 import { countScenarios } from '../../src/core/parsers/requirement-text.js';
 import { MarkdownParser } from '../../src/core/parsers/markdown-parser.js';
 import { Validator } from '../../src/core/validation/validator.js';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 /**
  * A scenario header with nothing under it used to pass `validate` and then fail
@@ -165,7 +165,7 @@ async function projectWithScenarios(scenarios: string[]) {
     XDG_DATA_HOME: path.join(home, '.local', 'share'),
     OPENSPEC_NO_ANIMATION: '1',
   };
-  const cli = (args: string[]) => runCLI(args, { cwd: project, env, timeoutMs: 60_000 });
+  const cli = (args: string[]) => runReviewedCLI(args, { cwd: project, env, timeoutMs: 60_000 });
 
   expect((await cli(['init', '--tools', 'claude'])).exitCode).toBe(0);
   expect((await cli(['new', 'change', 'edit'])).exitCode).toBe(0);

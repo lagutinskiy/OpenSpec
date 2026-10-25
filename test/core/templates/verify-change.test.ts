@@ -80,7 +80,7 @@ describe('verify-change templates', () => {
 
   it('preserves optional artifacts and the existing archive workflow', () => {
     for (const [label, body] of bodies) {
-      expect(body, label).toContain('Verification is advisory');
+      expect(body, label).toContain('This analysis supplements the required recorded verification and independent review');
       expect(body, label).toContain('`skip_specs: true`');
       expect(body, label).toContain('schemas without task tracking');
       expect(body, label).toContain('Do not require or invent optional or intentionally omitted artifacts');
@@ -88,8 +88,8 @@ describe('verify-change templates', () => {
       expect(body, label).toContain('Exclude them from skipped-check counts and the archive-readiness assessment');
       expect(body, label).toContain('If `taskTrackingConfigured` is false, report **Task Completion** as not applicable');
       expect(body, label).toContain('If `taskTrackingConfigured` is true and `tasks` is empty, mark **Task Completion** as not verified');
-      expect(body, label).toContain('`Not verified` describes a limit of this report, not a new archive prerequisite');
-      expect(body, label).toContain('Archive retains its own checks and user-confirmation behavior');
+      expect(body, label).toContain('`Not verified` describes a limit of this report, an applicable evidence gap');
+      expect(body, label).toContain('Archive retains its checks and requires current lifecycle evidence');
     }
   });
 

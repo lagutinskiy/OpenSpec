@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 /**
  * End to end: archive must refuse an ADDED or RENAMED name that differs only in
@@ -78,7 +78,7 @@ async function seededProject() {
     XDG_DATA_HOME: path.join(home, '.local', 'share'),
     OPENSPEC_NO_ANIMATION: '1',
   };
-  const cli = (args: string[]) => runCLI(args, { cwd: project, env, timeoutMs: 60_000 });
+  const cli = (args: string[]) => runReviewedCLI(args, { cwd: project, env, timeoutMs: 60_000 });
 
   expect((await cli(['init', '--tools', 'claude'])).exitCode).toBe(0);
   expect((await cli(['new', 'change', 'seed'])).exitCode).toBe(0);

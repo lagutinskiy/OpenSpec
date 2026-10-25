@@ -88,7 +88,6 @@ import {
   type UpdateFileOps,
   type UpdatePlan,
 } from './update-plan.js';
-import { includesGitHubCopilot, writeCopilotCloudFiles, removeCopilotCloudFiles, isCopilotCloudEnabled, readCopilotCloudOptIn, findUnmanagedCloudFiles, type CopilotCloudFileOps } from './github-copilot/cloud-agent.js';
 
 const require = createRequire(import.meta.url);
 const { version: OPENSPEC_VERSION } = require('../../package.json');
@@ -309,7 +308,6 @@ export class UpdateCommand {
         }
         return;
       }
-      await this.syncCopilotCloudFiles(resolvedProjectPath, configuredAndNewTools);
       this.log(chalk.yellow('No configured tools found.'));
       this.log(chalk.dim('Run "openspec init" to set up tools.'));
       return;
@@ -364,7 +362,6 @@ export class UpdateCommand {
       }
       // All tools are up to date
       this.displayUpToDateMessage(toolStatuses);
-      await this.syncCopilotCloudFiles(resolvedProjectPath, configuredAndNewTools);
 
       // Still check for new tool directories and extra workflows
       this.detectNewTools(resolvedProjectPath, configuredTools);
@@ -615,8 +612,6 @@ export class UpdateCommand {
       this.log(`Learn more: ${chalk.cyan('https://github.com/Fission-AI/OpenSpec')}`);
     }
 
-    await this.syncCopilotCloudFiles(resolvedProjectPath, configuredAndNewTools);
-
     // 13. Detect new tool directories not currently configured
     this.detectNewTools(resolvedProjectPath, configuredAndNewTools);
 
@@ -669,7 +664,7 @@ export class UpdateCommand {
   }
 
   /** The update's write seam, in the shape modules with their own writers take. */
-  private fileOps(tool: string): LegacyCleanupOps & CopilotCloudFileOps {
+  private fileOps(tool: string): LegacyCleanupOps {
     return {
       writeFile: (filePath, content) => this.ops.writeFile(filePath, content, tool),
       removeFile: (filePath) => this.ops.removeFile(filePath, tool),
@@ -707,60 +702,6 @@ export class UpdateCommand {
           'Moves out of a renamed tool directory are listed as a non-interactive update makes them. At a terminal, update asks first, and declining leaves those files where they are.'
         );
       }
-    }
-  }
-
-  private async syncCopilotCloudFiles(projectPath: string, configuredTools: string[]): Promise<void> {
-    const ops = this.fileOps('github-copilot');
-    try {
-      if (includesGitHubCopilot(configuredTools)) {
-        // Cloud files are opt-in (see cloud-agent.ts). `update` never prompts,
-        // so it only refreshes files the user has already opted into (via
-        // `openspec init` or a `githubCopilot.cloudAgent: true` config), or that
-        // a pre-opt-in project already has. Opting in is a deliberate init/config
-        // step, never a silent side effect of running update.
-        if (await isCopilotCloudEnabled(projectPath)) {
-          await writeCopilotCloudFiles(projectPath, ops);
-          const collisions = await findUnmanagedCloudFiles(projectPath);
-          if (collisions.length > 0) {
-            this.log(
-              chalk.dim(
-                `Left your existing ${collisions.join(' and ')} untouched — add the OpenSpec ` +
-                  `install step by hand so the Copilot cloud agent can run openspec.`
-              )
-            );
-          }
-          return;
-        }
-
-        // Explicit opt-out (githubCopilot.cloudAgent: false) means "not here":
-        // remove any managed files a prior opt-in left behind (customized files
-        // are preserved). If the user simply never decided, stay quiet unless
-        // we're at an interactive terminal, where a one-line hint aids discovery.
-        if (readCopilotCloudOptIn(projectPath) === false) {
-          const removed = await removeCopilotCloudFiles(projectPath, ops);
-          if (removed > 0) {
-            this.log(
-              chalk.dim(`Removed: ${removed} Copilot cloud agent file(s) (opted out of cloud files)`)
-            );
-          }
-        } else if (isInteractive()) {
-          this.log(
-            chalk.dim(
-              "GitHub Copilot cloud coding-agent files are available (opt-in). Enable with 'openspec init --copilot-cloud'."
-            )
-          );
-        }
-        return;
-      }
-
-      const removed = await removeCopilotCloudFiles(projectPath, ops);
-      if (removed > 0) {
-        this.log(chalk.dim(`Removed: ${removed} Copilot cloud agent file(s) (github-copilot not configured)`));
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn(`Warning: failed to sync Copilot cloud agent files: ${message}`);
     }
   }
 

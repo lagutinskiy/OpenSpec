@@ -1,26 +1,10 @@
 {
-  "name": "@fission-ai/openspec",
+  "name": "@private/openspec",
   "version": "1.15.0",
-  "description": "AI-native system for spec-driven development",
-  "keywords": [
-    "openspec",
-    "specs",
-    "cli",
-    "ai",
-    "development"
-  ],
-  "homepage": "https://github.com/Fission-AI/OpenSpec",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Fission-AI/OpenSpec"
-  },
+  "description": "Private spec-driven development skills and review workflow",
   "license": "MIT",
-  "author": "OpenSpec Contributors",
   "type": "module",
   "packageManager": "pnpm@10.34.5",
-  "publishConfig": {
-    "access": "public"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -50,18 +34,13 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "prepare": "node build.js",
-    "prepublishOnly": "pnpm run build",
-    "check:pack-version": "node scripts/pack-version-check.mjs",
-    "release": "pnpm run release:ci",
-    "release:ci": "pnpm run check:pack-version && pnpm exec changeset publish",
-    "changeset": "changeset"
+    "pack:local": "node scripts/pack-local.mjs",
+    "check": "npm run build && npm run lint && npm test"
   },
   "engines": {
     "node": ">=20.19.0"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^1.0.0",
-    "@changesets/cli": "^3.0.1",
     "@types/node": "^20.19.43",
     "@types/picomatch": "^4.0.3",
     "@vitest/ui": "^4.1.12",
@@ -85,5 +64,6 @@
     "tinyglobby": "^0.2.17",
     "yaml": "^2.8.3",
     "zod": "^4.4.3"
-  }
+  },
+  "private": true
 }

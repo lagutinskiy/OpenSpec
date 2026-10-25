@@ -161,63 +161,15 @@ describe('CLI startup loads only what the command needs', () => {
   // stop tracking every user-facing command in that group, and every assertion
   // above would still pass.
   it.each([['list --json'], ['completion generate zsh']])(
-    '`openspec %s` still reaches the telemetry hooks',
+    '`openspec %s` still reaches the local completion tip',
     async (invocation) => {
       await ensureCliBuilt();
       const { own } = loadedModules(invocation.split(' '));
 
-      expect(own).toContain('telemetry/index.js');
+      expect(own).not.toContain('telemetry/index.js');
       expect(own).toContain('core/completion-tip.js');
     }
   );
-
-  // The module-count assertions above pin that telemetry is not LOADED. They do
-  // not pin the user-visible consequence, which is the reason the skip exists:
-  // the first-run disclosure goes to stderr, every generated completion script
-  // sends `__complete` stderr to /dev/null, and `maybeShowTelemetryNotice` marks
-  // `noticeSeen` before `trackCommand` re-reads it. So before this change a
-  // user's first-ever interaction being a Tab press burned the disclosure where
-  // nobody could read it and began collecting on that same press.
-  //
-  // Telemetry is deliberately left ENABLED here: the point is that an enabled
-  // run still records nothing. HOME must be isolated as well as XDG_CONFIG_HOME,
-  // or `migrateLegacyTelemetryConfig` imports the developer's real config from
-  // ~/.config/openspec/config.json and the test passes vacuously.
-  it('`openspec __complete` leaves the first-run telemetry notice unconsumed', async () => {
-    await ensureCliBuilt();
-    const home = mkdtempSync(path.join(os.tmpdir(), 'openspec-notice-'));
-    workDirs.push(home);
-    const configHome = path.join(home, 'config');
-
-    // These have to be DELETED, not blanked. Both opt-outs read as "set to
-    // anything that is not an explicit on-value", so `OPENSPEC_TELEMETRY: ''`
-    // and `DO_NOT_TRACK: ''` would switch telemetry OFF and the assertions
-    // below would hold on any build, passing vacuously.
-    const env = {
-      ...process.env,
-      HOME: home,
-      USERPROFILE: home,
-      XDG_CONFIG_HOME: configHome,
-      XDG_DATA_HOME: path.join(home, 'data'),
-    };
-    delete env.OPENSPEC_TELEMETRY;
-    delete env.DO_NOT_TRACK;
-    delete env.CI;
-
-    const result = spawnSync(process.execPath, [binPath, '__complete', 'changes'], {
-      cwd: home,
-      env,
-      encoding: 'utf-8',
-      timeout: 30_000,
-      windowsHide: true,
-    });
-
-    expect(result.status).toBe(0);
-    // No disclosure written to a stream the completion scripts discard.
-    expect(result.stderr).toBe('');
-    // And no config file, so neither noticeSeen nor an anonymousId was minted.
-    expect(existsSync(path.join(configHome, 'openspec', 'config.json'))).toBe(false);
-  });
 
   it.each([
     ['config list --json', 'config'],

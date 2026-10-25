@@ -4,7 +4,7 @@ import { promises as fs, realpathSync } from 'fs';
 import path from 'path';
 import { tmpdir } from 'os';
 import { promisify } from 'util';
-import { runCLI, testBinary } from '../helpers/run-cli.js';
+import { runReviewedCLI, testBinary } from '../helpers/reviewed-cli.js';
 import { cleanupTempPath } from '../helpers/temp-cleanup.js';
 
 const execFileAsync = promisify(execFile);
@@ -196,7 +196,7 @@ afterAll(async () => {
 
 describe('standalone store lifecycle journey', () => {
   it('machine A: setup produces a committed, clonable repo', async () => {
-    const result = await runCLI(
+    const result = await runReviewedCLI(
       ['store', 'setup', STORE_ID, '--path', storeRoot, '--json'],
       { env: machineA }
     );
@@ -236,11 +236,11 @@ describe('standalone store lifecycle journey', () => {
   });
 
   it('machine A: doctor and list see a healthy store with git facts', async () => {
-    const list = await runCLI(['store', 'list', '--json'], { env: machineA });
+    const list = await runReviewedCLI(['store', 'list', '--json'], { env: machineA });
     expect(list.exitCode).toBe(0);
     expect(JSON.parse(list.stdout).stores).toHaveLength(1);
 
-    const doctor = await runCLI(['store', 'doctor', STORE_ID, '--json'], {
+    const doctor = await runReviewedCLI(['store', 'doctor', STORE_ID, '--json'], {
       env: machineA,
     });
     expect(doctor.exitCode).toBe(0);
@@ -256,7 +256,7 @@ describe('standalone store lifecycle journey', () => {
     expect(store.status).toEqual([]);
 
     // Human output surfaces the same Git facts.
-    const humanDoctor = await runCLI(['store', 'doctor', STORE_ID], { env: machineA });
+    const humanDoctor = await runReviewedCLI(['store', 'doctor', STORE_ID], { env: machineA });
     expect(humanDoctor.exitCode).toBe(0);
     expect(humanDoctor.stdout).toContain(
       'Git: repository detected (commits: yes, uncommitted changes: no, remote: none)'
@@ -266,7 +266,7 @@ describe('standalone store lifecycle journey', () => {
   it('machine A: works a change through archive from the project repo', async () => {
     const changeId = 'add-billing';
 
-    const created = await runCLI(
+    const created = await runReviewedCLI(
       ['new', 'change', changeId, '--store', STORE_ID, '--json'],
       { env: machineA, cwd: projectDir }
     );
@@ -279,7 +279,7 @@ describe('standalone store lifecycle journey', () => {
     });
     expect(path.isAbsolute(createdPayload.change.path)).toBe(true);
 
-    const status = await runCLI(
+    const status = await runReviewedCLI(
       ['status', '--change', changeId, '--store', STORE_ID],
       { env: machineA, cwd: projectDir }
     );
@@ -287,7 +287,7 @@ describe('standalone store lifecycle journey', () => {
     expect(status.stderr).toContain(`Using OpenSpec root: ${STORE_ID}`);
     expect(status.stdout).not.toContain('Planning home');
 
-    const instructions = await runCLI(
+    const instructions = await runReviewedCLI(
       ['instructions', 'proposal', '--change', changeId, '--store', STORE_ID],
       { env: machineA, cwd: projectDir }
     );
@@ -300,14 +300,14 @@ describe('standalone store lifecycle journey', () => {
     const changeDir = path.join(storeRoot, 'openspec', 'changes', changeId);
     await writeCompletedChangeArtifacts(changeDir, 'billing');
 
-    const validated = await runCLI(
+    const validated = await runReviewedCLI(
       ['validate', changeId, '--store', STORE_ID],
       { env: machineA, cwd: projectDir }
     );
     expect(validated.exitCode).toBe(0);
     expect(validated.stdout).toContain('is valid');
 
-    const listed = await runCLI(
+    const listed = await runReviewedCLI(
       ['list', '--store', STORE_ID, '--json'],
       { env: machineA, cwd: projectDir }
     );
@@ -316,14 +316,14 @@ describe('standalone store lifecycle journey', () => {
       changeId
     );
 
-    const shown = await runCLI(
+    const shown = await runReviewedCLI(
       ['show', changeId, '--store', STORE_ID],
       { env: machineA, cwd: projectDir }
     );
     expect(shown.exitCode).toBe(0);
     expect(shown.stdout).toContain('# Proposal');
 
-    const archived = await runCLI(
+    const archived = await runReviewedCLI(
       ['archive', changeId, '--store', STORE_ID, '--yes', '--json'],
       { env: machineA, cwd: projectDir }
     );
@@ -357,7 +357,7 @@ describe('standalone store lifecycle journey', () => {
       await git(cloneRoot, machineB, ['rev-list', '--count', 'HEAD'])
     ).trim();
 
-    const registered = await runCLI(
+    const registered = await runReviewedCLI(
       ['store', 'register', cloneRoot, '--json'],
       { env: machineB }
     );
@@ -372,13 +372,13 @@ describe('standalone store lifecycle journey', () => {
     ).trim();
     expect(commitsAfterRegister).toBe(commitsBeforeRegister);
 
-    const doctor = await runCLI(['store', 'doctor', STORE_ID, '--json'], {
+    const doctor = await runReviewedCLI(['store', 'doctor', STORE_ID, '--json'], {
       env: machineB,
     });
     expect(doctor.exitCode).toBe(0);
     expect(JSON.parse(doctor.stdout).stores[0].openspec_root.healthy).toBe(true);
 
-    const specs = await runCLI(
+    const specs = await runReviewedCLI(
       ['list', '--specs', '--store', STORE_ID, '--json'],
       { env: machineB, cwd: base }
     );
@@ -387,7 +387,7 @@ describe('standalone store lifecycle journey', () => {
     expect(specsPayload.specs.map((spec: { id: string }) => spec.id)).toContain('billing');
     expect(specsPayload.root.store_id).toBe(STORE_ID);
 
-    const shownSpec = await runCLI(
+    const shownSpec = await runReviewedCLI(
       ['show', 'billing', '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
@@ -398,7 +398,7 @@ describe('standalone store lifecycle journey', () => {
   it('machine B: completes its own change through archive in the clone', async () => {
     const changeId = 'add-invoicing';
 
-    const created = await runCLI(
+    const created = await runReviewedCLI(
       ['new', 'change', changeId, '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
@@ -406,7 +406,7 @@ describe('standalone store lifecycle journey', () => {
     expect(created.stderr).toContain(`Using OpenSpec root: ${STORE_ID}`);
     expect(created.stdout).toContain(`--store ${STORE_ID}`);
 
-    const instructions = await runCLI(
+    const instructions = await runReviewedCLI(
       ['instructions', 'proposal', '--change', changeId, '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
@@ -418,28 +418,28 @@ describe('standalone store lifecycle journey', () => {
     const changeDir = path.join(cloneRoot, 'openspec', 'changes', changeId);
     await writeCompletedChangeArtifacts(changeDir, 'invoicing');
 
-    const status = await runCLI(
+    const status = await runReviewedCLI(
       ['status', '--change', changeId, '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
     expect(status.exitCode).toBe(0);
     expect(status.stdout).toContain('All planning artifacts complete!');
 
-    const statusJson = await runCLI(
+    const statusJson = await runReviewedCLI(
       ['status', '--change', changeId, '--store', STORE_ID, '--json'],
       { env: machineB, cwd: base }
     );
     expect(statusJson.exitCode).toBe(0);
     expect(JSON.parse(statusJson.stdout).nextSteps[0]).toContain(`--store ${STORE_ID}`);
 
-    const validated = await runCLI(
+    const validated = await runReviewedCLI(
       ['validate', changeId, '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
     expect(validated.exitCode).toBe(0);
     expect(validated.stdout).toContain('is valid');
 
-    const archived = await runCLI(
+    const archived = await runReviewedCLI(
       ['archive', changeId, '--store', STORE_ID, '--yes', '--json'],
       { env: machineB, cwd: base }
     );
@@ -452,7 +452,7 @@ describe('standalone store lifecycle journey', () => {
     // Post-resolution failures keep the banner, and the hint keeps the store:
     // with everything archived, instructions apply fails after the root
     // resolved successfully.
-    const failedApply = await runCLI(
+    const failedApply = await runReviewedCLI(
       ['instructions', 'apply', '--store', STORE_ID],
       { env: machineB, cwd: base }
     );
@@ -501,7 +501,7 @@ describe('standalone store lifecycle journey', () => {
     };
     const target = path.join(base, 'machine-c', 'no-identity-store');
 
-    const result = await runCLI(
+    const result = await runReviewedCLI(
       ['store', 'setup', 'no-identity', '--path', target, '--json'],
       { env: noIdentity }
     );
@@ -513,7 +513,7 @@ describe('standalone store lifecycle journey', () => {
     await expect(fs.access(target)).rejects.toThrow();
 
     // --no-init-git needs no identity and creates no repo.
-    const optOut = await runCLI(
+    const optOut = await runReviewedCLI(
       ['store', 'setup', 'no-identity', '--path', target, '--no-init-git', '--json'],
       { env: noIdentity }
     );

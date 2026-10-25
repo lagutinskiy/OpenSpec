@@ -7,7 +7,7 @@
  * - The *name* comes from the file. `.../commands/opsx/<id>.md` is namespaced
  *   by its directory, so the tool registers `opsx:<id>` (Claude Code, Gemini,
  *   Crush, ...). `.../commands/opsx-<id>.md` names the command with the
- *   filename, so the tool registers `opsx-<id>` (Cursor, GitHub Copilot,
+ *   filename, so the tool registers `opsx-<id>` (Cursor,
  *   OpenCode, ...).
  * - The *prefix* is the tool's own and cannot be derived. Almost every tool
  *   uses `/`; Amazon Q loads these files into its prompt library, which is

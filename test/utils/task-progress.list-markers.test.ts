@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import { countTasksFromContent, parseTaskLines } from '../../src/utils/task-progress.js';
 import { findTaskNumberingIssues } from '../../src/core/validation/task-numbering.js';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 /**
  * A GFM task is a list item, and CommonMark has five list markers: `-`, `*`,
@@ -122,7 +122,7 @@ describe('ordered and plus tasks through the CLI', () => {
       XDG_DATA_HOME: path.join(home, '.local', 'share'),
       OPENSPEC_NO_ANIMATION: '1',
     };
-    const cli = (args: string[]) => runCLI(args, { cwd: project, env, timeoutMs: 60_000 });
+    const cli = (args: string[]) => runReviewedCLI(args, { cwd: project, env, timeoutMs: 60_000 });
 
     expect((await cli(['init', '--tools', 'claude'])).exitCode).toBe(0);
     expect((await cli(['new', 'change', 'add-thing'])).exitCode).toBe(0);

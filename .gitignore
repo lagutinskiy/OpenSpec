@@ -170,3 +170,10 @@ opencode.json
 # Standalone binaries (scripts/binary/build.mjs); Bun can leave .bun-build temp files
 dist-bin/
 *.bun-build
+
+# Local execution ledger
+.superpowers/
+
+/artifacts/
+
+docs/superpowers/

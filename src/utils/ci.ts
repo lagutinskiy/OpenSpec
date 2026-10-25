@@ -1,5 +1,5 @@
 /**
- * CI environment detection shared by telemetry and the version check.
+ * CI environment detection for CLI hints and the optional version check.
  *
  * Providers set CI to "true", "1", "yes", etc. Only an explicit off-value
  * counts as "not CI", so an unknown value still suppresses outbound requests

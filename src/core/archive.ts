@@ -1,3 +1,4 @@
+import { assertArchiveReady, LifecycleBlockedError } from './review/readiness.js';
 import { constants, createReadStream, promises as fs } from 'fs';
 import { createHash, randomUUID } from 'crypto';
 import path from 'path';
@@ -1439,6 +1440,16 @@ export class ArchiveCommand {
         'archive_change_is_namespace_folder',
         `Cannot archive '${changeName}': ${describeNestedChange(nested)}`,
         `Rename openspec/changes/${nested.nested[0]}/ to a flat change directory, then archive it.`
+      );
+    }
+
+    try {
+      await assertArchiveReady(root.path, changeDir, changeName);
+    } catch (error) {
+      throw new ArchiveBlockedError(
+        error instanceof LifecycleBlockedError ? error.code : 'archive_review_required',
+        error instanceof Error ? error.message : String(error),
+        withStoreFlag(root, `openspec review status --change ${JSON.stringify(changeName)} --main-harness <id> --base <revision> --json`)
       );
     }
 

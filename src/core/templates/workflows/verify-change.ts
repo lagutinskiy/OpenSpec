@@ -1,3 +1,4 @@
+import { REVIEW_GUIDANCE } from './review-change.js';
 /**
  * Skill Template Workflow Modules
  *
@@ -17,6 +18,8 @@ export function getVerifyChangeSkillTemplate(): SkillTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
@@ -63,7 +66,7 @@ ${PROJECT_ROOT_GUARD}
 
    Each dimension can have CRITICAL, WARNING, or SUGGESTION issues.
 
-   Verification is advisory. Respect intentional omissions such as \`skip_specs: true\`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. \`Not verified\` describes a limit of this report, not a new archive prerequisite. Archive retains its own checks and user-confirmation behavior.
+   This analysis supplements the required recorded verification and independent review. Respect intentional omissions such as \`skip_specs: true\`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. \`Not verified\` describes a limit of this report, an applicable evidence gap that must be resolved before full verification is claimed. Archive retains its checks and requires current lifecycle evidence.
 
    Mark checks the schema does not define, or artifacts the status reports as intentionally skipped, as **Not applicable**. The correctness checks of a change whose readable delta specs contain REMOVED or RENAMED requirements but no ADDED or MODIFIED requirements are also **Not applicable** (see step 6). Exclude them from skipped-check counts and the archive-readiness assessment. Reserve **Not verified** for applicable checks whose evidence is missing or unusable.
 
@@ -192,9 +195,9 @@ ${PROJECT_ROOT_GUARD}
 
    **Final Assessment**:
    - If CRITICAL issues: "X critical issue(s) found. Fix before archiving." If any check was skipped, also name every skipped check and its reason.
-   - If no CRITICAL issues, one or more warnings, and no checks were skipped: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
-   - If only suggestions and no checks were skipped: "No critical issues or warnings. Z suggestion(s) to consider. Ready for archive (with noted improvements)."
-   - If no issues and no checks were skipped: "All checks passed. Ready for archive."
+   - If no CRITICAL issues, one or more warnings, and no checks were skipped: "No critical issues. Y warning(s) to consider. Artifact checks passed; confirm lifecycle readiness with openspec review status."
+   - If only suggestions and no checks were skipped: "No critical issues or warnings. Z suggestion(s) to consider. Artifact checks passed; confirm lifecycle readiness with openspec review status."
+   - If no issues and no checks were skipped: "Artifact checks passed. Complete recorded verification and independent code review; confirm lifecycle readiness with openspec review status."
    - If any check was skipped and there are no CRITICAL issues: do not claim readiness. Say "No critical issues found in the checks that ran. <check(s)> not verified: <reason>." Include the warning count when nonzero.
    - Include the suggestion count when nonzero in every final assessment.
 
@@ -231,6 +234,8 @@ export function getOpsxVerifyCommandTemplate(): CommandTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
 
 **Input**: Optionally specify a change name after \`/opsx:verify\` (e.g., \`/opsx:verify add-auth\`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
@@ -277,7 +282,7 @@ ${PROJECT_ROOT_GUARD}
 
    Each dimension can have CRITICAL, WARNING, or SUGGESTION issues.
 
-   Verification is advisory. Respect intentional omissions such as \`skip_specs: true\`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. \`Not verified\` describes a limit of this report, not a new archive prerequisite. Archive retains its own checks and user-confirmation behavior.
+   This analysis supplements the required recorded verification and independent review. Respect intentional omissions such as \`skip_specs: true\`, optional design documents, and schemas without task tracking. Do not require or invent optional or intentionally omitted artifacts to obtain a clean report. \`Not verified\` describes a limit of this report, an applicable evidence gap that must be resolved before full verification is claimed. Archive retains its checks and requires current lifecycle evidence.
    Mark checks the schema does not define, or artifacts the status reports as intentionally skipped, as **Not applicable**. The correctness checks of a change whose readable delta specs contain REMOVED or RENAMED requirements but no ADDED or MODIFIED requirements are also **Not applicable** (see step 6). Exclude them from skipped-check counts and the archive-readiness assessment. Reserve **Not verified** for applicable checks whose evidence is missing or unusable.
 
    If only task evidence is available for applicable checks, verify task completion only and mark the remaining applicable checks, including **Code Pattern Consistency**, as not verified with the reason "Only task evidence available".
@@ -405,9 +410,9 @@ ${PROJECT_ROOT_GUARD}
 
    **Final Assessment**:
    - If CRITICAL issues: "X critical issue(s) found. Fix before archiving." If any check was skipped, also name every skipped check and its reason.
-   - If no CRITICAL issues, one or more warnings, and no checks were skipped: "No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements)."
-   - If only suggestions and no checks were skipped: "No critical issues or warnings. Z suggestion(s) to consider. Ready for archive (with noted improvements)."
-   - If no issues and no checks were skipped: "All checks passed. Ready for archive."
+   - If no CRITICAL issues, one or more warnings, and no checks were skipped: "No critical issues. Y warning(s) to consider. Artifact checks passed; confirm lifecycle readiness with openspec review status."
+   - If only suggestions and no checks were skipped: "No critical issues or warnings. Z suggestion(s) to consider. Artifact checks passed; confirm lifecycle readiness with openspec review status."
+   - If no issues and no checks were skipped: "Artifact checks passed. Complete recorded verification and independent code review; confirm lifecycle readiness with openspec review status."
    - If any check was skipped and there are no CRITICAL issues: do not claim readiness. Say "No critical issues found in the checks that ran. <check(s)> not verified: <reason>." Include the warning count when nonzero.
    - Include the suggestion count when nonzero in every final assessment.
 

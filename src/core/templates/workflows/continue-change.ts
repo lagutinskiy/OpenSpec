@@ -1,3 +1,4 @@
+import { REVIEW_GUIDANCE } from './review-change.js';
 /**
  * Skill Template Workflow Modules
  *
@@ -43,6 +44,10 @@ export function getContinueChangeSkillTemplate(): SkillTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
+
+When all applicable planning artifacts are ready, run the requirements review before presenting the change as ready to implement. Choose small-change for bounded work without design complexity; behavioral changes still require specs. Write outcomes and business rules in proposals/specs; put implementation mechanics in design/tasks unless the interface is the requested subject.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
@@ -169,6 +174,10 @@ export function getOpsxContinueCommandTemplate(): CommandTemplate {
 ${STORE_SELECTION_GUIDANCE}
 
 ${PROJECT_ROOT_GUARD}
+
+${REVIEW_GUIDANCE}
+
+When all applicable planning artifacts are ready, run the requirements review before presenting the change as ready to implement. Choose small-change for bounded work without design complexity; behavioral changes still require specs. Write outcomes and business rules in proposals/specs; put implementation mechanics in design/tasks unless the interface is the requested subject.
 
 **Input**: Optionally specify a change name after \`/opsx:continue\` (e.g., \`/opsx:continue add-auth\`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 

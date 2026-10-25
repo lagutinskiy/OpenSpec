@@ -70,7 +70,6 @@ export const LEGACY_SLASH_COMMAND_PATHS: Record<string, LegacySlashCommandPatter
     pattern: LEGACY_KILOCODE_COMMAND_FILES,
   },
   'kiro': { type: 'files', pattern: '.kiro/prompts/openspec-*.prompt.md' },
-  'github-copilot': { type: 'files', pattern: '.github/prompts/openspec-*.prompt.md' },
   'amazon-q': { type: 'files', pattern: '.amazonq/prompts/openspec-*.md' },
   'cline': { type: 'files', pattern: '.clinerules/workflows/openspec-*.md' },
   'roocode': { type: 'files', pattern: '.roo/commands/openspec-*.md' },

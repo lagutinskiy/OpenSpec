@@ -37,6 +37,7 @@ export const WORKFLOW_TO_SKILL_DIR: Record<WorkflowId, string> = {
   'archive': 'openspec-archive-change',
   'bulk-archive': 'openspec-bulk-archive-change',
   'verify': 'openspec-verify-change',
+  'review': 'openspec-review-change',
   'onboard': 'openspec-onboard',
   'propose': 'openspec-propose',
 };

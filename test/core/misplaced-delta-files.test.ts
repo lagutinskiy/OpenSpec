@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+vi.mock('../../src/core/review/readiness.js', async (original) => ({ ...await original<typeof import('../../src/core/review/readiness.js')>(), assertArchiveReady: vi.fn() }));
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -6,7 +8,7 @@ import { findUnreadDeltaFiles } from '../../src/utils/spec-discovery.js';
 import { Validator } from '../../src/core/validation/validator.js';
 import { ArchiveCommand } from '../../src/core/archive.js';
 import { generateApplyInstructions } from '../../src/commands/workflow/instructions.js';
-import { runCLI } from '../helpers/run-cli.js';
+import { runReviewedCLI } from '../helpers/reviewed-cli.js';
 
 vi.mock('@inquirer/prompts', () => ({
   select: vi.fn(),
@@ -379,7 +381,7 @@ describe('end to end: a delta written as specs/<capability>.md', () => {
       XDG_DATA_HOME: path.join(home, '.local', 'share'),
       OPENSPEC_NO_ANIMATION: '1',
     };
-    const cli = (args: string[]) => runCLI(args, { cwd: project, env, timeoutMs: 60_000 });
+    const cli = (args: string[]) => runReviewedCLI(args, { cwd: project, env, timeoutMs: 60_000 });
     expect((await cli(['init', '--tools', 'claude'])).exitCode).toBe(0);
     expect((await cli(['new', 'change', 'add-login'])).exitCode).toBe(0);
     const dir = path.join(project, 'openspec', 'changes', 'add-login');

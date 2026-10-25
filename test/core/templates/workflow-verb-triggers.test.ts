@@ -29,6 +29,7 @@ const NATURAL_VERB_BY_WORKFLOW: Record<string, string> = {
   archive: 'archive',
   'bulk-archive': 'bulk-archive',
   verify: 'verify',
+  review: 'review',
   onboard: 'onboard',
   propose: 'propose',
 };
@@ -44,6 +45,7 @@ const NATURAL_VERB_BY_WORKFLOW: Record<string, string> = {
  * in its description.
  */
 const DELIBERATE_CLI_PHRASE_CLAIMS: Record<string, string> = {
+  'openspec review': 'The skill drives the independent review CLI and handles findings.',
   'openspec archive':
     'both archive and merge delta specs, but the workflow confirms with the user and verifies the merge capability-by-capability before anything moves, where the bare command does it in one shot; an agent asked to archive should take the checked path',
   'openspec archive all': 'same, for several changes at once (bulk-archive)',

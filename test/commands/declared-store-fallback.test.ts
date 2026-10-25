@@ -4,7 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 import { getGlobalDataDir, registerStore } from '../../src/core/index.js';
-import { runCLI, type RunCLIResult } from '../helpers/run-cli.js';
+import { runReviewedCLI, type RunCLIResult } from '../helpers/reviewed-cli.js';
 import { snapshotDirectory as snapshot } from '../helpers/fs-snapshot.js';
 import { createOpenSpecRoot, writeSpec } from '../helpers/openspec-fixtures.js';
 
@@ -53,7 +53,7 @@ describe('declared store fallback (3.2)', () => {
   it('runs the externalized-planning journey without --store anywhere', async () => {
     const pointerBefore = snapshot(pointerRepo);
 
-    const created = await runCLI(['new', 'change', 'billing-rework', '--json'], {
+    const created = await runReviewedCLI(['new', 'change', 'billing-rework', '--json'], {
       cwd: pointerRepo,
       env,
     });
@@ -64,7 +64,7 @@ describe('declared store fallback (3.2)', () => {
       store_id: 'team-context',
     });
 
-    const statusHuman = await runCLI(['status', '--change', 'billing-rework'], {
+    const statusHuman = await runReviewedCLI(['status', '--change', 'billing-rework'], {
       cwd: pointerRepo,
       env,
     });
@@ -78,13 +78,13 @@ describe('declared store fallback (3.2)', () => {
       'Next: openspec instructions proposal --change "billing-rework" --store team-context --json'
     );
 
-    const statusJson = await runCLI(['status', '--change', 'billing-rework', '--json'], {
+    const statusJson = await runReviewedCLI(['status', '--change', 'billing-rework', '--json'], {
       cwd: pointerRepo,
       env,
     });
     expect(parseJson(statusJson).nextSteps.join(' ')).toContain('--store team-context');
 
-    const instructions = await runCLI(
+    const instructions = await runReviewedCLI(
       ['instructions', 'proposal', '--change', 'billing-rework', '--json'],
       { cwd: pointerRepo, env }
     );
@@ -102,22 +102,22 @@ describe('declared store fallback (3.2)', () => {
       '## ADDED Requirements\n\n### Requirement: Billing SHALL work\nThe system SHALL bill.\n\n#### Scenario: Bills\n- **WHEN** a period ends\n- **THEN** a bill exists\n'
     );
 
-    const validate = await runCLI(['validate', 'billing-rework', '--json', '--no-interactive'], {
+    const validate = await runReviewedCLI(['validate', 'billing-rework', '--json', '--no-interactive'], {
       cwd: pointerRepo,
       env,
     });
     expect(validate.exitCode).toBe(0);
 
-    const list = await runCLI(['list', '--json'], { cwd: pointerRepo, env });
+    const list = await runReviewedCLI(['list', '--json'], { cwd: pointerRepo, env });
     expect(parseJson(list).root.source).toBe('declared');
 
-    const show = await runCLI(['show', 'billing-rework', '--json', '--type', 'change'], {
+    const show = await runReviewedCLI(['show', 'billing-rework', '--json', '--type', 'change'], {
       cwd: pointerRepo,
       env,
     });
     expect(show.exitCode).toBe(0);
 
-    const archive = await runCLI(['archive', 'billing-rework', '--yes', '--json'], {
+    const archive = await runReviewedCLI(['archive', 'billing-rework', '--yes', '--json'], {
       cwd: pointerRepo,
       env,
     });
@@ -141,13 +141,13 @@ describe('declared store fallback (3.2)', () => {
       'schema: spec-driven\nreferences:\n  - upstream-context\n'
     );
 
-    const created = await runCLI(['new', 'change', 'ref-check', '--json'], {
+    const created = await runReviewedCLI(['new', 'change', 'ref-check', '--json'], {
       cwd: pointerRepo,
       env,
     });
     expect(created.exitCode).toBe(0);
 
-    const instructions = await runCLI(
+    const instructions = await runReviewedCLI(
       ['instructions', 'proposal', '--change', 'ref-check', '--json'],
       { cwd: pointerRepo, env }
     );
@@ -159,7 +159,7 @@ describe('declared store fallback (3.2)', () => {
     const legacyAgentsPath = path.join(pointerRepo, 'openspec', 'AGENTS.md');
     fs.writeFileSync(legacyAgentsPath, 'Keep this pointer-repo file.\n');
     const before = snapshot(pointerRepo);
-    const initialized = await runCLI(['init', '.', '--tools', 'claude'], {
+    const initialized = await runReviewedCLI(['init', '.', '--tools', 'claude'], {
       cwd: pointerRepo,
       env,
     });
@@ -179,7 +179,7 @@ describe('declared store fallback (3.2)', () => {
   it.skipIf(process.platform === 'win32')('installs integrations through a symlinked pointer-repo root', async () => {
     const alias = path.join(tempDir, 'repo-alias');
     fs.symlinkSync(pointerRepo, alias, 'dir');
-    const initialized = await runCLI(['init', alias, '--tools', 'claude'], {
+    const initialized = await runReviewedCLI(['init', alias, '--tools', 'claude'], {
       cwd: tempDir,
       env,
     });
@@ -191,43 +191,10 @@ describe('declared store fallback (3.2)', () => {
     );
   });
 
-  it('applies explicit Copilot cloud choices without changing the pointer config', async () => {
-    const configPath = path.join(pointerRepo, 'openspec', 'config.yaml');
-    const setupStepsPath = path.join(
-      pointerRepo,
-      '.github',
-      'workflows',
-      'copilot-setup-steps.yml'
-    );
-    const agentPath = path.join(pointerRepo, '.github', 'agents', 'openspec.agent.md');
-    const before = fs.readFileSync(configPath, 'utf8');
-
-    const enabled = await runCLI(
-      ['init', '.', '--tools', 'github-copilot', '--copilot-cloud'],
-      { cwd: pointerRepo, env }
-    );
-
-    expect(enabled.exitCode).toBe(0);
-    expect(fs.existsSync(setupStepsPath)).toBe(true);
-    expect(fs.existsSync(agentPath)).toBe(true);
-    expect(fs.readFileSync(configPath, 'utf8')).toBe(before);
-
-    const disabled = await runCLI(
-      ['init', '.', '--tools', 'github-copilot', '--no-copilot-cloud'],
-      { cwd: pointerRepo, env }
-    );
-
-    expect(disabled.exitCode).toBe(0);
-    expect(fs.existsSync(setupStepsPath)).toBe(false);
-    expect(fs.existsSync(agentPath)).toBe(false);
-    expect(fs.readFileSync(configPath, 'utf8')).toBe(before);
-    expect(fs.existsSync(path.join(pointerRepo, 'openspec', 'specs'))).toBe(false);
-  });
-
   it('rejects --language in a pointer repo without changing either root', async () => {
     const pointerBefore = snapshot(pointerRepo);
     const storeBefore = snapshot(storeRoot);
-    const result = await runCLI(
+    const result = await runReviewedCLI(
       ['init', '.', '--tools', 'none', '--language', 'French'],
       { cwd: pointerRepo, env }
     );
@@ -244,7 +211,7 @@ describe('declared store fallback (3.2)', () => {
       path.join(pointerRepo, 'openspec', 'config.yaml'),
       'store: [team-context]\n'
     );
-    const malformed = await runCLI(['init', '.'], { cwd: pointerRepo, env });
+    const malformed = await runReviewedCLI(['init', '.'], { cwd: pointerRepo, env });
     expect(malformed.exitCode).toBe(1);
     expect(malformed.stderr).toContain('Fix or remove the store: line');
     expect(fs.existsSync(path.join(pointerRepo, 'openspec', 'specs'))).toBe(false);
@@ -257,7 +224,7 @@ describe('declared store fallback (3.2)', () => {
     );
     const subdir = path.join(pointerRepo, 'packages', 'api');
     fs.mkdirSync(subdir, { recursive: true });
-    const nested = await runCLI(['init', '.'], { cwd: subdir, env });
+    const nested = await runReviewedCLI(['init', '.'], { cwd: subdir, env });
     expect(nested.exitCode).toBe(1);
     expect(nested.stderr).toContain("externalized to store 'team-context'");
     expect(fs.existsSync(path.join(subdir, 'openspec'))).toBe(false);
@@ -273,7 +240,7 @@ describe('declared store fallback (3.2)', () => {
       ['with', 'schema: spec-driven\nstore: team-context\n'],
     ] as const) {
       fs.writeFileSync(path.join(realRepo, 'openspec', 'config.yaml'), config);
-      const result = await runCLI(['list', '--json'], { cwd: realRepo, env });
+      const result = await runReviewedCLI(['list', '--json'], { cwd: realRepo, env });
       expect(result.exitCode).toBe(0);
       runs[label] = {
         stdout: result.stdout,

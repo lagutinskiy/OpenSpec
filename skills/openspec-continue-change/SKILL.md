@@ -11,7 +11,7 @@ metadata:
 
 Continue working on a change by creating the next artifact.
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
+**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `review`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
 
 **Project check:** These steps expect a project that already uses OpenSpec. Before the first step that writes anything (`new change`, `archive`, `sync specs`, or authoring an artifact file), confirm the project has a root: run `openspec list --json` (with `--store <id>` when a store is selected, since the store is then the root) and read `root`. A root object means the project is set up. `"root": null` means it is not - there is no `openspec/` directory here, and a write such as `openspec new change` would create one as a side effect. The command also exits non-zero, which is that answer rather than a broken CLI, so read the JSON instead of retrying or working around it.
 
@@ -23,6 +23,60 @@ Otherwise, with no root, what happens next depends on how this workflow was reac
 - **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for their answer.
 
 In both branches, never create the root as a side effect: do not run `openspec init` until the user asks for it, do not hand-create `openspec/` files, and do not let a command create it.
+
+
+**Independent review lifecycle**
+
+Identify the actual implementing harness; pass its supported tool ID as --main-harness.
+Claude Code uses Codex as reviewer; Codex uses Claude Code. Other supported
+harnesses require review.reviewer configured as codex or claude. Never substitute
+self-review when a reviewer is unavailable. Keep the selected --store and explicit
+--implementation-root (when needed) on every review command. Use --base with an
+explicit agreed Git revision, or review.base configuration, for code/verification.
+Do not guess a base branch.
+
+Before implementation, finish applicable planning artifacts, preserve unresolved
+decisions in <planningHome.root>/openspec/decisions.md, and run:
+  openspec review requirements --change "<name>" --main-harness <id> --json
+Then run openspec review ready-to-implement with the same selection arguments.
+Do not implement until that command reports ready. Resolve questions affecting
+requirements/approach first; deferrable questions need an owner and next action.
+
+After implementation, execute appropriate checks through:
+  openspec review verify --change "<name>" --main-harness <id> --base <revision> --check '["executable","argument"]' --json
+Repeat --check for each applicable check. These commands execute real checks and
+record output. Explain applicable checks that could not run; do not claim them as
+passed. Verification evidence is separate from code review and task checkboxes.
+Then run:
+  openspec review code --change "<name>" --main-harness <id> --base <revision> --json
+
+Evaluate findings against the requirements. Fix accepted findings, rerun relevant
+checks, then request a fresh review. Record each finding ID and disposition with
+reason/evidence in <changeRoot>/reviews/<stage>-dispositions.md; rejected findings need a
+reason and reviewer reconsideration, not a silent dismissal. Do not weaken
+requirements to satisfy a finding. A reviewer must accept dispositions before a
+passed report. Critical/high unresolved findings block completion; lower findings
+need a recorded disposition. Limit this fix/verify/review loop to review.maxRounds
+(default 3) per invocation; when exhausted, report remaining findings and pause.
+Resume later from saved reports; never restart by discarding findings.
+
+Treat tasks-complete, requirements-reviewed, verified, code-reviewed and
+archive-ready as distinct states. Missing CLI/authentication, timeout, invalid
+output or stale evidence blocks review. Reports live under <changeRoot>/reviews/;
+current content must match the reviewed snapshot. Do not hand-write passing
+reports. Reviewer processes inspect only and must not launch other agents.
+
+Before archive, read and update the project decisions register: resolve affected
+entries or retain deferrable entries with owner and next action. Reflect settled
+behavior in proposal/spec/design. If relevant decision content changes, refresh
+requirements/code reviews and verification before archive. Then run openspec review decisions with the
+same selection arguments to acknowledge the current register, and openspec review
+status --base <revision> to confirm readiness. Use openspec archive for the actual
+archive; do not move the change directory manually. Existing archive bypass flags
+do not bypass independent review, verification, or decisions acknowledgement.
+
+
+When all applicable planning artifacts are ready, run the requirements review before presenting the change as ready to implement. Choose small-change for bounded work without design complexity; behavioral changes still require specs. Write outcomes and business rules in proposals/specs; put implementation mechanics in design/tasks unless the interface is the requested subject.
 
 **Input**: Optionally specify a change name. If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
 
