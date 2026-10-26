@@ -30,6 +30,39 @@ describe('review CLI adapters', () => {
     await fake('claude', `const a=process.argv.slice(2);if(a[a.indexOf('--tools')+1]!=='Read,Glob,Grep'||!a.includes('--strict-mcp-config'))process.exit(2);process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({subtype:'success',structured_output:{outcome:'passed',summary:'Reviewed',findings:[]}})));`);
     expect(await reviewWithClaude('review', {}, root, 5000)).toEqual({ outcome: 'passed', summary: 'Reviewed', findings: [] });
   });
+  // Fake CLIs echo their argv as the summary so the test sees exactly what was passed.
+  const echoCodex = `const fs=require('fs');const a=process.argv.slice(2);process.stdin.resume();process.stdin.on('end',()=>fs.writeFileSync(a[a.indexOf('--output-last-message')+1],JSON.stringify({outcome:'passed',summary:JSON.stringify(a),findings:[]})));`;
+  const echoClaude = `const a=process.argv.slice(2);process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({subtype:'success',structured_output:{outcome:'passed',summary:JSON.stringify(a),findings:[]}})));`;
+  const argsOf = (report: unknown) => JSON.parse((report as { summary: string }).summary) as string[];
+  it('passes Codex model and effort only when configured', async () => {
+    await fake('codex', echoCodex);
+    const plain = argsOf(await reviewWithCodex('review', {}, root, 5000));
+    expect(plain).not.toContain('-m');
+    expect(plain.some(arg => arg.startsWith('model_reasoning_effort'))).toBe(false);
+    const tuned = argsOf(await reviewWithCodex('review', {}, root, 5000, { model: 'gpt-6.1-sol', effort: 'xhigh' }));
+    expect(tuned[tuned.indexOf('-m') + 1]).toBe('gpt-6.1-sol');
+    expect(tuned).toContain('model_reasoning_effort="xhigh"');
+    expect(tuned).toContain('--ignore-user-config');
+    expect(tuned[tuned.length - 1]).toBe('-');
+  });
+  it('passes Claude model and effort only when configured', async () => {
+    await fake('claude', echoClaude);
+    const plain = argsOf(await reviewWithClaude('review', {}, root, 5000));
+    expect(plain).not.toContain('--model');
+    expect(plain).not.toContain('--effort');
+    const tuned = argsOf(await reviewWithClaude('review', {}, root, 5000, { effort: 'max' }));
+    expect(tuned[tuned.indexOf('--effort') + 1]).toBe('max');
+    expect(tuned).not.toContain('--model');
+    expect(tuned).toContain('--bare');
+  });
+  it('surfaces a reviewer rejecting the model', async () => {
+    await fake('codex', `process.stdin.resume();process.stdin.on('end',()=>{console.error('model "nope" not found');process.exit(1);});`);
+    await expect(reviewWithCodex('review', {}, root, 5000, { model: 'nope' })).rejects.toThrow(/model "nope" not found/);
+  });
+  it('keeps Claude diagnostics when it rejects the model', async () => {
+    await fake('claude', `process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({is_error:true,subtype:'error',result:'model "nope" is not available'})));`);
+    await expect(reviewWithClaude('review', {}, root, 5000, { model: 'nope' })).rejects.toThrow(/did not complete successfully: model "nope" is not available/);
+  });
   it('rejects Claude error envelopes and malformed output', async () => {
     await fake('claude', `process.stdin.resume();process.stdin.on('end',()=>console.log('{"is_error":true}'));`);
     await expect(reviewWithClaude('review', {}, root, 5000)).rejects.toThrow(/complete/);

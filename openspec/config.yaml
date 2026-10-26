@@ -33,3 +33,13 @@ rules:
     - Use existing constants and lists - don't invent detection mechanisms
     - Prefer explicit lookups over pattern matching or regex
     - If we generate it, we track it by name in a constant
+
+review:
+  maxRounds: 3
+  reviewers:
+    claude: { model: opus, effort: medium }
+    codex:  { model: gpt-6.1-sol, effort: medium }
+  stages:
+    requirements:
+      maxRounds: 2
+      reviewers: { claude: { effort: medium } }

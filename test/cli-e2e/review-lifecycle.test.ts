@@ -64,4 +64,46 @@ describe('private development workflow', () => {
     expect(JSON.parse(result.stdout).reviewer).toBe('claude');
   });
 
+  it('passes configured and command-line reviewer settings, and validates them', async () => {
+    const bin = path.join(root, 'bin');
+    // Claude fixture echoes its argv so the test can see the settings it received.
+    await fs.writeFile(path.join(bin, 'claude'), `#!${process.execPath}\nconst a=process.argv.slice(2);process.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({subtype:'success',structured_output:{outcome:'passed',summary:JSON.stringify(a),findings:[]}})));\n`, { mode: 0o755 });
+    await fs.writeFile(path.join(project, 'openspec/config.yaml'), 'schema: small-change\nreview:\n  reviewers:\n    claude: { model: opus, effort: high }\n  stages:\n    requirements:\n      reviewers:\n        claude: { effort: medium }\n');
+    const configured = await review('requirements', 'codex');
+    expect(configured.exitCode, configured.stdout).toBe(0);
+    const args = JSON.parse(JSON.parse(configured.stdout).summary) as string[];
+    expect(args[args.indexOf('--model') + 1]).toBe('opus');
+    expect(args[args.indexOf('--effort') + 1]).toBe('medium');
+    expect(JSON.parse(configured.stdout).request).toMatchObject({ model: 'opus', effort: 'medium' });
+    const flagged = await review('requirements', 'codex', ['--effort', 'max', '--model', 'sonnet']);
+    expect(JSON.parse(flagged.stdout).request).toMatchObject({ model: 'sonnet', effort: 'max' });
+    const invalid = await review('requirements', 'codex', ['--effort', 'minimal']);
+    expect(invalid.exitCode).toBe(1);
+    expect(JSON.parse(invalid.stdout).error).toMatch(/claude.*minimal/);
+  });
+
+  it('rejects review-only flags on other stages and invalid extra rounds', async () => {
+    for (const flags of [['--effort', 'high'], ['--model', 'opus'], ['--extra-rounds', '1']]) {
+      const result = await review('status', 'codex', flags);
+      expect(result.exitCode).toBe(1);
+      expect(JSON.parse(result.stdout).error).toMatch(/only to the requirements and code/);
+    }
+    for (const value of ['0', '21', '1.5', 'two']) {
+      const result = await review('requirements', 'codex', ['--extra-rounds', value]);
+      expect(JSON.parse(result.stdout).error).toMatch(/extra-rounds/);
+    }
+  });
+
+  it('stops at the round limit until the user grants extra rounds', async () => {
+    const bin = path.join(root, 'bin');
+    await fs.writeFile(path.join(bin, 'claude'), `#!${process.execPath}\nprocess.stdin.resume();process.stdin.on('end',()=>console.log(JSON.stringify({subtype:'success',structured_output:{outcome:'changes_required',summary:'Fix it',findings:[{id:'R-1',severity:'medium',message:'Clarify',evidence:'proposal.md',disposition:'open',reason:''}]}})));\n`, { mode: 0o755 });
+    await fs.writeFile(path.join(project, 'openspec/config.yaml'), 'schema: small-change\nreview:\n  maxRounds: 3\n  stages:\n    requirements:\n      maxRounds: 1\n');
+    expect((await review('requirements')).exitCode).toBe(1);
+    const limited = await review('requirements');
+    expect(limited.exitCode).toBe(1);
+    expect(JSON.parse(limited.stdout)).toMatchObject({ outcome: 'limit_reached', count: 1, limit: 1, openFindings: [{ id: 'R-1' }] });
+    const extra = await review('requirements', 'codex', ['--extra-rounds', '1']);
+    expect(JSON.parse(extra.stdout)).toMatchObject({ outcome: 'changes_required', round: 2, request: { extraRounds: 1 } });
+  });
+
 });

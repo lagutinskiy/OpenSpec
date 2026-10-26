@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { AI_TOOLS } from '../config.js';
 import { assertInside, getReviewSnapshot } from './fingerprint.js';
 import { buildReviewContext } from './context.js';
-import { ReviewPolicySchema, ReviewReportSchema, ReviewResultSchema, type Reviewer, type ReviewRequest, type ReviewResult } from './types.js';
+import { ReviewPolicySchema, ReviewReportSchema, ReviewResultSchema, assertReviewerEffort, type Reviewer, type ReviewRequest, type ReviewResult, type ReviewLimitReached, type ReviewStage } from './types.js';
 import { reviewWithClaude } from './adapters/claude.js';
 import { reviewWithCodex } from './adapters/codex.js';
 
@@ -35,7 +35,10 @@ export async function writeEvidence(changeRoot: string, name: string, value: unk
 }
 export async function readReview(changeRoot: string, stage: string): Promise<ReviewResult | null> {
   if (stage !== 'requirements' && stage !== 'code') throw new Error('Invalid review stage');
-  const file = path.join(changeRoot, 'reviews', `${stage}.json`);
+  return readReviewFile(changeRoot, `${stage}.json`);
+}
+async function readReviewFile(changeRoot: string, name: string): Promise<ReviewResult | null> {
+  const file = path.join(changeRoot, 'reviews', name);
   try {
     await assertInside(changeRoot, file);
     return ReviewResultSchema.parse(JSON.parse(await fs.readFile(file, 'utf8')));
@@ -52,25 +55,67 @@ export async function readCurrentReview(request: ReviewRequest): Promise<ReviewR
   const snapshot = await getReviewSnapshot(request);
   return snapshot.hash === previous.snapshotHash ? previous : null;
 }
-export async function runReview(request: ReviewRequest, runner?: ReviewRunner): Promise<ReviewResult> {
+/** Consecutive changes_required rounds since the last pass; blocked or unreadable rounds neither count nor reset. */
+export async function countFailedRounds(changeRoot: string, stage: ReviewStage): Promise<{ count: number; latest?: ReviewResult; latestRound: number; findingsReport?: ReviewResult }> {
+  const dir = path.join(changeRoot, 'reviews');
+  let names: string[];
+  try { names = await fs.readdir(dir); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { count: 0, latestRound: 0 }; throw error; }
+  const prefix = `${stage}-`;
+  const rounds = names
+    .filter(name => name.startsWith(prefix) && name.endsWith('.json'))
+    .map(name => Number(name.slice(prefix.length, -'.json'.length)))
+    .filter(round => Number.isInteger(round) && round > 0)
+    .sort((a, b) => b - a);
+  let count = 0;
+  let latest: ReviewResult | undefined;
+  let findingsReport: ReviewResult | undefined;
+  for (const round of rounds) {
+    const report = await readReviewFile(changeRoot, `${stage}-${round}.json`);
+    if (!report) continue;
+    latest ??= report;
+    if (report.outcome === 'passed') break;
+    if (report.outcome === 'changes_required') { count++; findingsReport ??= report; }
+  }
+  return { count, latest, latestRound: rounds[0] ?? 0, findingsReport };
+}
+async function checkRoundLimit(request: ReviewRequest): Promise<ReviewLimitReached | null> {
+  const limit = ReviewPolicySchema.parse({ maxRounds: request.maxRounds }).maxRounds;
+  const extraRounds = request.extraRounds ?? 0;
+  const { count, latest, latestRound, findingsReport } = await countFailedRounds(request.changeRoot, request.stage);
+  if (count < limit + extraRounds) return null;
+  return { outcome: 'limit_reached', stage: request.stage, count, limit, extraRounds,
+    openFindings: (findingsReport?.findings ?? []).filter(finding => finding.disposition !== 'fixed'),
+    ...(findingsReport ? { findingsRound: findingsReport.round } : {}), latestRound,
+    ...(latest?.outcome === 'blocked' ? { latestBlockedSummary: latest.summary } : {}),
+    next: 'Stop and ask the user how to proceed. Rerun with --extra-rounds <n> only with their explicit approval.' };
+}
+export async function runReview(request: ReviewRequest, runner?: ReviewRunner): Promise<ReviewResult | ReviewLimitReached> {
   if (request.stage === 'code') {
     const { assertRequirementsReviewed } = await import('./readiness.js');
     await assertRequirementsReviewed(request);
   }
   const reviewer = selectReviewer(request.mainHarness, request.reviewer);
+  assertReviewerEffort(reviewer, request.effort);
+  if (request.extraRounds !== undefined && (!Number.isInteger(request.extraRounds) || request.extraRounds < 1 || request.extraRounds > 20)) {
+    throw new Error('--extra-rounds must be a whole number from 1 to 20.');
+  }
   const policy = ReviewPolicySchema.parse({ timeoutMs: request.timeoutMs, maxRounds: request.maxRounds });
+  const settings = { ...(request.model ? { model: request.model } : {}), ...(request.effort ? { effort: request.effort } : {}) };
   const snapshot = await getReviewSnapshot(request);
   const normalized = { ...request, ...(snapshot.base ? { base: snapshot.base } : {}) };
   const dir = await evidenceDirectory(request.changeRoot);
   const releaseLock = await acquireReviewLock(request.changeRoot, dir, request.stage);
   try {
+    const limitReached = await checkRoundLimit(request);
+    if (limitReached) return limitReached;
     const previous = await readReview(request.changeRoot, request.stage);
     let report;
     try {
       const prompt = await buildReviewContext(request, snapshot);
       const schema = z.toJSONSchema(ReviewReportSchema, { unrepresentable: 'any' });
       const raw = runner ? await runner(prompt, reviewer, normalized)
-        : await (reviewer === 'claude' ? reviewWithClaude : reviewWithCodex)(prompt, schema, request.implementationRoot, policy.timeoutMs);
+        : await (reviewer === 'claude' ? reviewWithClaude : reviewWithCodex)(prompt, schema, request.implementationRoot, policy.timeoutMs, settings);
       report = ReviewReportSchema.parse(raw);
       if ((await getReviewSnapshot(normalized)).hash !== snapshot.hash) {
         report = { outcome: 'blocked' as const, summary: 'Content changed during review; review again.', findings: [] };

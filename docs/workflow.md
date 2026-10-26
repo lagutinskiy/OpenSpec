@@ -64,8 +64,19 @@ Content changes invalidate previous evidence. Task completion is a separate stat
 
 Critical/high unresolved findings block completion. Lower findings need a recorded
 disposition. The reviewer must accept a rejected finding's reasoning before it
-can pass. The skill stops after `review.maxRounds` rounds per invocation
-(default 3); resume from the saved evidence in a later invocation.
+can pass.
+
+The CLI limits consecutive `changes_required` reviews for each stage to
+`review.maxRounds` (default 3). `blocked` reviews do not count, and a passed review
+resets the count. At the limit, `openspec review` does not start the reviewer: it
+returns `limit_reached` with the open findings and exits with code 1. To continue,
+the user explicitly allows more rounds for one run:
+
+```sh
+openspec review code --change export-data --main-harness codex --base main --extra-rounds 2 --json
+```
+
+The allowance applies only to that command and is recorded in the report.
 
 **Blocked review:** missing authentication or CLI, timeout, invalid output,
 concurrent edits, or unresolved findings do not count as passed.
@@ -116,9 +127,35 @@ review:
   base: main
   timeoutMs: 600000
   maxRounds: 3
+  reviewers:          # model and reasoning effort for each reviewer CLI
+    claude: { model: opus, effort: high }
+    codex: { model: gpt-6.1-sol, effort: high }
+  stages:             # optional per-stage overrides
+    requirements:
+      maxRounds: 2
+      reviewers:
+        claude: { effort: medium }
+    code:
+      reviewers:
+        codex: { effort: xhigh }
 ```
 
 `timeoutMs` is a positive integer up to 3600000. `maxRounds` is a positive integer
 up to 20. Configuration lives in the implementation project's `openspec/config.yaml`.
 CLI `--base` and `--reviewer` override the corresponding configuration fields.
 The reciprocal Codex/Claude pairing always applies.
+
+Reviewer settings resolve field by field, with the most specific winning:
+`--model`/`--effort` for one run, then `stages.<stage>.reviewers.<reviewer>`, then
+`reviewers.<reviewer>`, then the reviewer CLI's built-in default. The model name
+is passed through unchanged; if the reviewer rejects it, the review is `blocked`.
+Effort must be a level the reviewer supports:
+
+| Reviewer | Effort levels |
+| --- | --- |
+| Claude Code | `low`, `medium`, `high`, `xhigh`, `max` |
+| Codex | `minimal`, `low`, `medium`, `high`, `xhigh` |
+
+Reports record the requested model and effort. Using different settings later
+does not invalidate a review, but editing `openspec/config.yaml` is a content
+change and refreshes code review and verification like any other edit.

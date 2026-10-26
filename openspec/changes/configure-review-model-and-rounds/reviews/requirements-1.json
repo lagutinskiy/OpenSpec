@@ -1,0 +1,38 @@
+{
+  "outcome": "changes_required",
+  "summary": "The main behavior and precedence rules are clear, but two failure and compatibility cases need resolution before implementation.",
+  "findings": [
+    {
+      "id": "REQ-001",
+      "severity": "medium",
+      "message": "Resolve how changing reviewer settings preserves an existing passed code review when those settings reside in a fingerprinted configuration file.",
+      "evidence": "review-reviewer-settings/spec.md requires that changing configured code-review effort leaves an existing pass valid. However, src/core/review/fingerprint.ts fingerprints implementation files, including openspec/config.yaml, and readCurrentReview compares the snapshot hash. design.md says readiness and readCurrentReview are unaffected, and tasks.md includes no work to reconcile this behavior.",
+      "disposition": "open",
+      "reason": "The acceptance scenario conflicts with the proposed unchanged fingerprint behavior. Specify how settings-only edits are distinguished from other configuration edits, and align design/tasks and compatibility validation."
+    },
+    {
+      "id": "REQ-002",
+      "severity": "medium",
+      "message": "Define which findings limit_reached returns when the latest report is blocked and contains no findings.",
+      "evidence": "review-round-limit/spec.md explicitly skips blocked reports when counting but requires open findings from the most recent report. Existing runReview writes blocked reports with findings: [] on errors. A history of changes_required, blocked can therefore reach the limit while the prescribed response omits the unresolved findings. The agent guidance still requires summarizing remaining findings.",
+      "disposition": "open",
+      "reason": "Specify whether to retrieve findings from the latest changes_required report or deliberately return an empty list with the blocked diagnostic, and add an acceptance case for a blocked latest report at the limit."
+    }
+  ],
+  "version": 1,
+  "stage": "requirements",
+  "reviewer": "codex",
+  "request": {
+    "stage": "requirements",
+    "changeName": "configure-review-model-and-rounds",
+    "planningRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "changeRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec/openspec/changes/configure-review-model-and-rounds",
+    "implementationRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "mainHarness": "claude",
+    "timeoutMs": 600000,
+    "maxRounds": 3
+  },
+  "snapshotHash": "019b70465d00ad7473f9bf220fd1cbf1731ec2e0c43e4e09368fa9601e4a9de3",
+  "createdAt": "2026-10-26T20:45:35.533Z",
+  "round": 1
+}
