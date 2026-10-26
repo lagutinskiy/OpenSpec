@@ -43,6 +43,15 @@ describe('review lifecycle readiness', () => {
     const result = await runVerification(request(), [[process.execPath, '-e', 'process.exit(1)']]);
     expect(result.outcome).toBe('failed');
   });
+  it('treats review configuration edits as content changes for code evidence', async () => {
+    await runReview({ ...request(), stage: 'requirements' }, passing);
+    await runReview({ ...request(), effort: 'high' }, passing);
+    const { readCurrentReview } = await import('../../../src/core/review/service.js');
+    expect((await readCurrentReview({ ...request(), effort: 'max' }))?.outcome).toBe('passed');
+    await fs.mkdir(path.join(root, 'openspec'), { recursive: true });
+    await fs.writeFile(path.join(root, 'openspec/config.yaml'), 'schema: spec-driven\nreview:\n  reviewers:\n    claude: { effort: max }\n');
+    expect(await readCurrentReview(request())).toBeNull();
+  });
   it('requires reviewed requirements before code review', async () => {
     await expect(runReview(request(), passing)).rejects.toThrow(/Requirements review/);
   });

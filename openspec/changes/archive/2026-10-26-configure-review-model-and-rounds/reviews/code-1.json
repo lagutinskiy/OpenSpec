@@ -1,0 +1,31 @@
+{
+  "outcome": "changes_required",
+  "summary": "Inspected current implementation and the untracked policy tests. TypeScript verification passed with --noEmit; the supplied full-suite pass was not independently rerun under read-only constraints. One requirement gap remains.",
+  "findings": [
+    {
+      "id": "CODE-001",
+      "severity": "medium",
+      "message": "Preserve Claude's error details when a requested model fails in a JSON error envelope.",
+      "evidence": "src/core/review/adapters/claude.ts:11 replaces all is_error/non-success envelopes with 'Claude review did not complete successfully', discarding envelope.result/errors. Consequently, runReview saves a blocked report without the reviewer's model rejection error, contrary to the unavailable-model requirement. New rejection coverage tests only Codex; Claude coverage checks only the generic failure.",
+      "disposition": "open",
+      "reason": "Include the available reviewer diagnostic in the thrown error and cover a Claude model rejection envelope through the saved blocked report."
+    }
+  ],
+  "version": 1,
+  "stage": "code",
+  "reviewer": "codex",
+  "request": {
+    "stage": "code",
+    "changeName": "configure-review-model-and-rounds",
+    "planningRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "changeRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec/openspec/changes/configure-review-model-and-rounds",
+    "implementationRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "mainHarness": "claude",
+    "base": "6843cc3c4229e6ed8b4cbaf9b243bc5094d2c443",
+    "timeoutMs": 600000,
+    "maxRounds": 3
+  },
+  "snapshotHash": "40f25e722fe0a2dc9a84e9663de1c425c14b722aea24f8faf5139c1d901cd843",
+  "createdAt": "2026-10-26T20:59:51.128Z",
+  "round": 1
+}

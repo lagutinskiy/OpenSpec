@@ -4,6 +4,7 @@ import type { Command } from 'commander';
 interface ReviewOptions {
   change: string; mainHarness?: string; reviewer?: string; base?: string;
   store?: string; implementationRoot?: string; json?: boolean; check?: string[];
+  model?: string; effort?: string; extraRounds?: string;
 }
 export function registerReviewCommand(program: Command): void {
   program.command('review <stage>')
@@ -12,6 +13,9 @@ export function registerReviewCommand(program: Command): void {
     .option('--main-harness <id>', 'Implementing harness (required)')
     .option('--reviewer <id>', 'Reviewer for harnesses other than Codex/Claude')
     .option('--base <revision>', 'Explicit Git base for code review and verification')
+    .option('--model <name>', 'Reviewer model for this review run')
+    .option('--effort <level>', 'Reviewer reasoning effort for this review run')
+    .option('--extra-rounds <n>', 'User-approved review rounds beyond review.maxRounds (1-20)')
     .option('--store <id>', COMMON_FLAGS.store.description)
     .option('--implementation-root <path>', 'Repository containing implementation')
     .option('--json', 'Output as JSON')

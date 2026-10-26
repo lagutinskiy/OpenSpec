@@ -1,0 +1,33 @@
+{
+  "outcome": "passed",
+  "summary": "Fresh inspection of implementation, surrounding lifecycle code, requirements, dispositions, and tests found no new actionable issues. Independently ran TypeScript --noEmit and ESLint successfully. Supplied verification records 4682 passing tests; the full suite was not independently rerun because it requires writes prohibited by this read-only environment.",
+  "findings": [
+    {
+      "id": "CODE-001",
+      "severity": "medium",
+      "message": "Preserve Claude diagnostics when a requested model fails.",
+      "evidence": "src/core/review/adapters/claude.ts includes envelope.result and envelope.errors in the thrown diagnostic. runReview preserves the diagnostic in blocked reports. Adapter and service regression tests cover both steps.",
+      "disposition": "fixed",
+      "reason": "The current implementation supports the implementer's disposition and satisfies the unavailable-model diagnostic requirement."
+    }
+  ],
+  "version": 1,
+  "stage": "code",
+  "reviewer": "codex",
+  "request": {
+    "stage": "code",
+    "changeName": "configure-review-model-and-rounds",
+    "planningRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "changeRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec/openspec/changes/configure-review-model-and-rounds",
+    "implementationRoot": "/Users/vladimirlagutinskiy/Repositories/OpenSpec",
+    "mainHarness": "claude",
+    "base": "6843cc3c4229e6ed8b4cbaf9b243bc5094d2c443",
+    "timeoutMs": 600000,
+    "maxRounds": 3,
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "snapshotHash": "10c270972e34df2c8f0f48540835df6bd3f0db28ec0265c60eabde20e43d8f67",
+  "createdAt": "2026-10-26T21:26:11.351Z",
+  "round": 3
+}

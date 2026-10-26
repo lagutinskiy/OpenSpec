@@ -34,9 +34,12 @@ reason/evidence in <changeRoot>/reviews/<stage>-dispositions.md; rejected findin
 reason and reviewer reconsideration, not a silent dismissal. Do not weaken
 requirements to satisfy a finding. A reviewer must accept dispositions before a
 passed report. Critical/high unresolved findings block completion; lower findings
-need a recorded disposition. Limit this fix/verify/review loop to review.maxRounds
-(default 3) per invocation; when exhausted, report remaining findings and pause.
-Resume later from saved reports; never restart by discarding findings.
+need a recorded disposition. The CLI limits consecutive changes_required rounds per
+stage to review.maxRounds (default 3; review.stages.<stage>.maxRounds overrides).
+When a review returns outcome limit_reached, stop the loop: summarize the open
+findings for the user and ask how to proceed. Pass --extra-rounds <n>, --model, or
+--effort only when the user explicitly asks; otherwise use the configured reviewer
+settings. Resume later from saved reports; never restart by discarding findings.
 
 Treat tasks-complete, requirements-reviewed, verified, code-reviewed and
 archive-ready as distinct states. Missing CLI/authentication, timeout, invalid
