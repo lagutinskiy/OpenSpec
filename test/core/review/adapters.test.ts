@@ -53,7 +53,27 @@ describe('review CLI adapters', () => {
     const tuned = argsOf(await reviewWithClaude('review', {}, root, 5000, { effort: 'max' }));
     expect(tuned[tuned.indexOf('--effort') + 1]).toBe('max');
     expect(tuned).not.toContain('--model');
-    expect(tuned).toContain('--bare');
+  });
+  // --bare reads only ANTHROPIC_API_KEY or an apiKeyHelper, never the user's login,
+  // so a subscription user's reviewer answered "Not logged in". --safe-mode keeps the
+  // login and still disables CLAUDE.md, hooks, plugins, skills and MCP servers.
+  it('runs Claude isolated in safe mode, which keeps the user\'s login', async () => {
+    await fake('claude', echoClaude);
+    const args = argsOf(await reviewWithClaude('review', {}, root, 5000));
+    expect(args).toContain('--safe-mode');
+    expect(args).not.toContain('--bare');
+    expect(args[args.indexOf('--setting-sources') + 1]).toBe('');
+    expect(args).toContain('--strict-mcp-config');
+  });
+  // Zod stamps draft 2020-12 on its JSON Schema, and Claude Code's --json-schema
+  // validator cannot resolve that meta-schema, so it refused every review.
+  it('passes Claude a schema without a $schema declaration, leaving the caller\'s intact', async () => {
+    await fake('claude', echoClaude);
+    const schema = { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object', properties: { ok: { type: 'boolean' } } };
+    const args = argsOf(await reviewWithClaude('review', schema, root, 5000));
+    const passed = JSON.parse(args[args.indexOf('--json-schema') + 1]);
+    expect(passed).toEqual({ type: 'object', properties: { ok: { type: 'boolean' } } });
+    expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
   });
   it('surfaces a reviewer rejecting the model', async () => {
     await fake('codex', `process.stdin.resume();process.stdin.on('end',()=>{console.error('model "nope" not found');process.exit(1);});`);
