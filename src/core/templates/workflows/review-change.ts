@@ -33,8 +33,10 @@ checks, then request a fresh review. Record each finding ID and disposition with
 reason/evidence in <changeRoot>/reviews/<stage>-dispositions.md; rejected findings need a
 reason and reviewer reconsideration, not a silent dismissal. Do not weaken
 requirements to satisfy a finding. A reviewer must accept dispositions before a
-passed report. Critical/high unresolved findings block completion; lower findings
-need a recorded disposition. The CLI limits consecutive changes_required rounds per
+passed report. Open findings and critical accepted risks block completion. High
+findings may be accepted when the reason cites a decision-register ID or
+dispositions entry with owner and next action; medium/low need a recorded
+disposition. The CLI limits consecutive changes_required rounds per
 stage to review.maxRounds (default 3; review.stages.<stage>.maxRounds overrides).
 When a review returns outcome limit_reached, stop the loop: summarize the open
 findings for the user and ask how to proceed. Pass --extra-rounds <n>, --model, or

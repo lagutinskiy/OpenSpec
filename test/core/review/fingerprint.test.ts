@@ -50,6 +50,16 @@ describe('review evidence identity', () => {
   });
   it('rejects passed reports containing unresolved blocking findings', () => {
     expect(ReviewReportSchema.safeParse({ outcome: 'passed', summary: 'OK', findings: [{ id: 'R1', severity: 'high', message: 'Loss', evidence: 'app.ts', disposition: 'open' }] }).success).toBe(false);
+    expect(ReviewReportSchema.safeParse({ outcome: 'passed', summary: 'OK', findings: [{ id: 'R2', severity: 'critical', message: 'Unsafe', evidence: 'app.ts', disposition: 'accepted', reason: 'D-001 defer' }] }).success).toBe(false);
+    expect(ReviewReportSchema.safeParse({ outcome: 'passed', summary: 'OK', findings: [{ id: 'R3', severity: 'high', message: 'Deferred', evidence: 'design.md', disposition: 'accepted', reason: '' }] }).success).toBe(false);
+  });
+
+  it('allows passed reports with documented high accepted deferrals', () => {
+    expect(ReviewReportSchema.safeParse({
+      outcome: 'passed',
+      summary: 'OK with deferral',
+      findings: [{ id: 'R4', severity: 'high', message: 'Doc context later', evidence: 'decisions.md', disposition: 'accepted', reason: 'D-003 owner praesagio; next: fix context builders' }],
+    }).success).toBe(true);
   });
   it('tracks application reviews directories while keeping code dispositions out of requirements approval', async () => {
     const requirementRequest = { ...request(), stage: 'requirements' as const };

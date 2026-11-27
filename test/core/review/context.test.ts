@@ -21,14 +21,26 @@ describe('review prompt', () => {
   afterEach(async () => { await fs.rm(root, { recursive: true, force: true }); });
 
   for (const stage of ['requirements', 'code'] as const) {
-    it(`asks the ${stage} reviewer for one exhaustive pass`, async () => {
+    it(`asks the ${stage} reviewer for a scope-bounded convergent pass`, async () => {
       const request = { stage, changeName: 'example', planningRoot: root, implementationRoot: root, changeRoot, mainHarness: 'codex', base: 'HEAD' };
       const prompt = await buildReviewContext(request, await getReviewSnapshot(request));
       expect(prompt).toContain(EXHAUSTIVE_PASS);
-      expect(EXHAUSTIVE_PASS).toMatch(/Report every defect you find/);
-      expect(EXHAUSTIVE_PASS).toMatch(/do not hold findings back for a later round/);
+      expect(EXHAUSTIVE_PASS).toMatch(/stated scope/);
+      expect(EXHAUSTIVE_PASS).toMatch(/Prefer fewer, higher-signal findings/);
+      expect(EXHAUSTIVE_PASS).toMatch(/Reuse prior finding IDs/);
+      expect(EXHAUSTIVE_PASS).toMatch(/cap new IDs at 5/);
+      expect(EXHAUSTIVE_PASS).not.toMatch(/consequences of this round's own findings/);
+      expect(prompt).toMatch(/High findings may pass as accepted/);
+      expect(prompt).not.toMatch(/Critical\/high accepted risks do not pass/);
       // The instruction precedes the evidence, so no artifact text can sit between it and the task statement.
       expect(prompt.indexOf(EXHAUSTIVE_PASS)).toBeLessThan(prompt.indexOf('Artifact evidence:'));
     });
   }
+
+  it('scopes requirements review to claimed behavior, not whole-product audit', async () => {
+    const request = { stage: 'requirements' as const, changeName: 'example', planningRoot: root, implementationRoot: root, changeRoot, mainHarness: 'codex', base: 'HEAD' };
+    const prompt = await buildReviewContext(request, await getReviewSnapshot(request));
+    expect(prompt).toMatch(/not a pre-implementation audit of the whole product/);
+    expect(prompt).toMatch(/Non-Goals/);
+  });
 });

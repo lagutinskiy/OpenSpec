@@ -62,6 +62,8 @@ export const FindingSchema = z.object({
   evidence: z.string().min(1),
   disposition: z.enum(['open', 'fixed', 'accepted', 'rejected']),
   reason: z.string().default(''),
+  /** Optional link to a prior finding ID when this continues the same concern. */
+  priorFindingId: z.string().min(1).optional(),
 }).strict();
 export const ReviewReportSchema = z.object({
   outcome: z.enum(['passed', 'changes_required', 'blocked']),
@@ -70,8 +72,18 @@ export const ReviewReportSchema = z.object({
 }).strict().superRefine((report, ctx) => {
   if (report.outcome !== 'passed') return;
   for (const finding of report.findings) {
-    if (finding.disposition === 'open' || (finding.disposition !== 'fixed' && !finding.reason?.trim()) ||
-      (['critical', 'high'].includes(finding.severity) && finding.disposition === 'accepted')) {
+    const reason = finding.reason?.trim() ?? '';
+    if (finding.disposition === 'open') {
+      ctx.addIssue({ code: 'custom', message: `Unresolved finding: ${finding.id}` });
+      continue;
+    }
+    if (finding.disposition !== 'fixed' && !reason) {
+      ctx.addIssue({ code: 'custom', message: `Unresolved finding: ${finding.id}` });
+      continue;
+    }
+    // Critical accepted risks still block. High may be accepted when documented
+    // (decision ID / dispositions owner+next action) so deferrals can converge.
+    if (finding.severity === 'critical' && finding.disposition === 'accepted') {
       ctx.addIssue({ code: 'custom', message: `Unresolved finding: ${finding.id}` });
     }
   }

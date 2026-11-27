@@ -62,7 +62,9 @@ Content changes invalidate previous evidence. Task completion is a separate stat
 3. Rerun affected checks.
 4. Request another independent review.
 
-Critical/high unresolved findings block completion. Lower findings need a recorded
+Open findings and critical accepted risks block completion. High findings may
+pass as accepted when the reason cites a decision-register ID or dispositions
+entry with owner and next action. Medium/low findings need a recorded
 disposition. The reviewer must accept a rejected finding's reasoning before it
 can pass.
 
