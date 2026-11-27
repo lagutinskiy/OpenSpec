@@ -62,8 +62,8 @@ export const FindingSchema = z.object({
   evidence: z.string().min(1),
   disposition: z.enum(['open', 'fixed', 'accepted', 'rejected']),
   reason: z.string().default(''),
-  /** Optional link to a prior finding ID when this continues the same concern. */
-  priorFindingId: z.string().min(1).optional(),
+  // Do not add optional finding fields: Codex structured-output schemas require
+  // every properties key to appear in required (optional Zod fields break the API).
 }).strict();
 export const ReviewReportSchema = z.object({
   outcome: z.enum(['passed', 'changes_required', 'blocked']),
