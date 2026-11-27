@@ -2,12 +2,13 @@ import { z } from 'zod';
 
 export const ReviewStageSchema = z.enum(['requirements', 'code']);
 export type ReviewStage = z.infer<typeof ReviewStageSchema>;
-export const ReviewerSchema = z.enum(['codex', 'claude']);
+export const ReviewerSchema = z.enum(['codex', 'claude', 'grok']);
 export type Reviewer = z.infer<typeof ReviewerSchema>;
-// Codex passes unknown efforts through to the provider, so both lists are enforced locally.
+// Codex passes unknown efforts through to the provider, so lists are enforced locally.
 export const REVIEWER_EFFORT_LEVELS: Record<Reviewer, readonly string[]> = {
   claude: ['low', 'medium', 'high', 'xhigh', 'max'],
   codex: ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  grok: ['low', 'medium', 'high', 'xhigh', 'max'],
 };
 export function assertReviewerEffort(reviewer: Reviewer, effort: string | undefined): void {
   if (effort !== undefined && !REVIEWER_EFFORT_LEVELS[reviewer].includes(effort)) {
@@ -23,6 +24,7 @@ export type ReviewerSettings = z.infer<typeof ReviewerSettingsSchema>;
 const ReviewerSettingsMapSchema = z.object({
   claude: ReviewerSettingsSchema.optional(),
   codex: ReviewerSettingsSchema.optional(),
+  grok: ReviewerSettingsSchema.optional(),
 }).strict();
 const StagePolicySchema = z.object({
   maxRounds: RoundLimitSchema.optional(),

@@ -20,6 +20,8 @@ describe('independent review service', () => {
     expect(selectReviewer('claude')).toBe('codex');
     expect(() => selectReviewer('pi')).toThrow(/configure/);
     expect(selectReviewer('pi', 'codex')).toBe('codex');
+    expect(selectReviewer('cursor', 'grok')).toBe('grok');
+    expect(() => selectReviewer('grok', 'grok')).toThrow(/independent/);
     expect(() => selectReviewer('codex', 'codex')).toThrow(/independent/);
     expect(() => selectReviewer('unknown', 'claude')).toThrow(/Unsupported/);
   });

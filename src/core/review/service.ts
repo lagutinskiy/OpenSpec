@@ -8,6 +8,7 @@ import { buildReviewContext } from './context.js';
 import { ReviewPolicySchema, ReviewReportSchema, ReviewResultSchema, assertReviewerEffort, type Reviewer, type ReviewRequest, type ReviewResult, type ReviewLimitReached, type ReviewStage } from './types.js';
 import { reviewWithClaude } from './adapters/claude.js';
 import { reviewWithCodex } from './adapters/codex.js';
+import { reviewWithGrok } from './adapters/grok.js';
 
 export type ReviewRunner = (prompt: string, reviewer: Reviewer, request: ReviewRequest) => Promise<unknown>;
 export function selectReviewer(mainHarness: string, configured?: Reviewer): Reviewer {
@@ -115,7 +116,9 @@ export async function runReview(request: ReviewRequest, runner?: ReviewRunner): 
       const prompt = await buildReviewContext(request, snapshot);
       const schema = z.toJSONSchema(ReviewReportSchema, { unrepresentable: 'any' });
       const raw = runner ? await runner(prompt, reviewer, normalized)
-        : await (reviewer === 'claude' ? reviewWithClaude : reviewWithCodex)(prompt, schema, request.implementationRoot, policy.timeoutMs, settings);
+        : await (reviewer === 'claude' ? reviewWithClaude
+          : reviewer === 'grok' ? reviewWithGrok
+            : reviewWithCodex)(prompt, schema, request.implementationRoot, policy.timeoutMs, settings);
       report = ReviewReportSchema.parse(raw);
       if ((await getReviewSnapshot(normalized)).hash !== snapshot.hash) {
         report = { outcome: 'blocked' as const, summary: 'Content changed during review; review again.', findings: [] };

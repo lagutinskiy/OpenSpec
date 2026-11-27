@@ -8,7 +8,7 @@ Review requirements before implementing. Verify and independently review code be
 | --- | --- |
 | Codex | Claude Code |
 | Claude Code | Codex |
-| Other supported harness | Project-configured Codex or Claude Code |
+| Other supported harness | Project-configured Codex, Claude Code, or Grok Build |
 
 Install and authenticate the reviewer CLI separately. OpenSpec does not install
 it, log in, or bypass its permissions. Each review starts a fresh session.
@@ -18,7 +18,7 @@ The reviewer inspects files; the implementing agent fixes findings.
 
 A requested review supplies planning artifacts, the code diff and file manifest,
 relevant decisions, finding dispositions, and verification output to the selected
-Codex or Claude Code CLI and its configured model provider. Reports are saved
+Codex, Claude Code, or Grok Build CLI and its configured model provider. Reports are saved
 locally under `<changeRoot>/reviews/`.
 
 This fork contains no usage analytics, anonymous-ID collection, background version
@@ -132,6 +132,7 @@ review:
   reviewers:          # model and reasoning effort for each reviewer CLI
     claude: { model: opus, effort: high }
     codex: { model: gpt-6.1-sol, effort: high }
+    grok: { model: grok-4.6, effort: high }
   stages:             # optional per-stage overrides
     requirements:
       maxRounds: 2
@@ -157,6 +158,7 @@ Effort must be a level the reviewer supports:
 | --- | --- |
 | Claude Code | `low`, `medium`, `high`, `xhigh`, `max` |
 | Codex | `minimal`, `low`, `medium`, `high`, `xhigh` |
+| Grok Build | `low`, `medium`, `high`, `xhigh`, `max` |
 
 Reports record the requested model and effort. Using different settings later
 does not invalidate a review, but editing `openspec/config.yaml` is a content

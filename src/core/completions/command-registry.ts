@@ -30,7 +30,7 @@ export const COMMAND_REGISTRY: CommandDefinition[] = [
     flags: [
       { name: 'change', description: 'Change name', takesValue: true },
       { name: 'main-harness', description: 'Implementing harness', takesValue: true },
-      { name: 'reviewer', description: 'Independent reviewer', takesValue: true, values: ['codex', 'claude'] },
+      { name: 'reviewer', description: 'Independent reviewer', takesValue: true, values: ['codex', 'claude', 'grok'] },
       { name: 'base', description: 'Git base revision', takesValue: true },
       { name: 'model', description: 'Reviewer model for this run', takesValue: true },
       { name: 'effort', description: 'Reviewer reasoning effort for this run', takesValue: true, values: ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] },

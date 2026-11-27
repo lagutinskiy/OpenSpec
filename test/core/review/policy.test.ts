@@ -9,13 +9,15 @@ describe('review policy', () => {
     expect(resolveRoundLimit(policy, 'code')).toBe(3);
   });
   it('validates effort for each reviewer, including the non-selected one', () => {
-    expect(() => ReviewPolicySchema.parse({ reviewers: { claude: { effort: 'max' }, codex: { effort: 'minimal' } } })).not.toThrow();
+    expect(() => ReviewPolicySchema.parse({ reviewers: { claude: { effort: 'max' }, codex: { effort: 'minimal' }, grok: { effort: 'high' } } })).not.toThrow();
     expect(() => ReviewPolicySchema.parse({ reviewers: { codex: { effort: 'max' } } })).toThrow(/codex.*max.*minimal, low, medium, high, xhigh/);
     expect(() => ReviewPolicySchema.parse({ reviewers: { claude: { effort: 'minimal' } } })).toThrow(/claude/);
+    expect(() => ReviewPolicySchema.parse({ reviewers: { grok: { effort: 'minimal' } } })).toThrow(/grok/);
     expect(() => ReviewPolicySchema.parse({ stages: { code: { reviewers: { claude: { effort: 'turbo' } } } } })).toThrow(/turbo/);
   });
   it('rejects unknown fields and empty models', () => {
     expect(() => ReviewPolicySchema.parse({ reviewers: { gemini: { model: 'x' } } })).toThrow();
+    expect(() => ReviewPolicySchema.parse({ reviewer: 'gemini' })).toThrow();
     expect(() => ReviewPolicySchema.parse({ stages: { verify: {} } })).toThrow();
     expect(() => ReviewPolicySchema.parse({ reviewers: { codex: { model: '' } } })).toThrow();
   });

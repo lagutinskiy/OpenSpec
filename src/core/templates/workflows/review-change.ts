@@ -7,7 +7,7 @@ export const REVIEW_GUIDANCE = `
 
 Identify the actual implementing harness; pass its supported tool ID as --main-harness.
 Claude Code uses Codex as reviewer; Codex uses Claude Code. Other supported
-harnesses require review.reviewer configured as codex or claude. Never substitute
+harnesses require review.reviewer configured as codex, claude, or grok. Never substitute
 self-review when a reviewer is unavailable. Keep the selected --store and explicit
 --implementation-root (when needed) on every review command. Use --base with an
 explicit agreed Git revision, or review.base configuration, for code/verification.

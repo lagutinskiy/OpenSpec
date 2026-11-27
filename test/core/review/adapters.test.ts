@@ -4,6 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { reviewWithCodex } from '../../../src/core/review/adapters/codex.js';
 import { reviewWithClaude } from '../../../src/core/review/adapters/claude.js';
+import { reviewWithGrok } from '../../../src/core/review/adapters/grok.js';
 
 // Real subprocesses stand in for authenticated CLIs; adapters still build arguments,
 // send stdin, read final output, and reject execution/output failures themselves.
@@ -88,5 +89,35 @@ describe('review CLI adapters', () => {
     await expect(reviewWithClaude('review', {}, root, 5000)).rejects.toThrow(/complete/);
     await fake('claude', `process.stdin.resume();process.stdin.on('end',()=>console.log('truncated'));`);
     await expect(reviewWithClaude('review', {}, root, 5000)).rejects.toThrow();
+  });
+  const echoGrok = `const fs=require('fs');const a=process.argv.slice(2);const prompt=fs.readFileSync(a[a.indexOf('--prompt-file')+1],'utf8');const report={outcome:'passed',summary:JSON.stringify(a)+':'+prompt,findings:[]};console.log(JSON.stringify({text:JSON.stringify(report),structuredOutput:report}));`;
+  it('runs Grok headless with read-only sandbox and unwraps structuredOutput', async () => {
+    await fake('grok', echoGrok);
+    const report = await reviewWithGrok('review this', {}, root, 5000) as { outcome: string; summary: string };
+    expect(report.outcome).toBe('passed');
+    const args = JSON.parse(report.summary.split(':')[0]) as string[];
+    expect(args[args.indexOf('--sandbox') + 1]).toBe('read-only');
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('dontAsk');
+    expect(args[args.indexOf('--tools') + 1]).toBe('Read,Glob,Grep');
+    expect(args).toContain('--no-plan');
+    expect(args).toContain('--json-schema');
+    expect(report.summary.endsWith(':review this')).toBe(true);
+  });
+  it('passes Grok model and effort only when configured', async () => {
+    await fake('grok', echoGrok);
+    const plain = JSON.parse(((await reviewWithGrok('review', {}, root, 5000)) as { summary: string }).summary.split(':')[0]) as string[];
+    expect(plain).not.toContain('-m');
+    expect(plain).not.toContain('--effort');
+    const tuned = JSON.parse(((await reviewWithGrok('review', {}, root, 5000, { model: 'grok-4.6', effort: 'high' })) as { summary: string }).summary.split(':')[0]) as string[];
+    expect(tuned[tuned.indexOf('-m') + 1]).toBe('grok-4.6');
+    expect(tuned[tuned.indexOf('--effort') + 1]).toBe('high');
+  });
+  it('unwraps Grok text when structuredOutput is absent', async () => {
+    await fake('grok', `console.log(JSON.stringify({text:'{"outcome":"passed","summary":"from-text","findings":[]}'}));`);
+    await expect(reviewWithGrok('review', {}, root, 5000)).resolves.toEqual({ outcome: 'passed', summary: 'from-text', findings: [] });
+  });
+  it('keeps Grok diagnostics when authentication fails', async () => {
+    await fake('grok', `console.log(JSON.stringify({type:'error',message:'Not signed in'}));`);
+    await expect(reviewWithGrok('review', {}, root, 5000)).rejects.toThrow(/Not signed in/);
   });
 });
